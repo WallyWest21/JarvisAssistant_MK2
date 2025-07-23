@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ResourceDictionary xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+    
+    <!-- Afrofuturistic Color Palette -->
+    
+    <!-- Primary Colors -->
+    <Color x:Key="PrimaryPurple">#4A148C</Color>
+    <Color x:Key="SecondaryPurple">#6A1B9A</Color>
+    <Color x:Key="LightPurple">#9C27B0</Color>
+    <Color x:Key="DarkPurple">#2E003E</Color>
+    
+    <!-- Accent Colors -->
+    <Color x:Key="GoldAccent">#FFD700</Color>
+    <Color x:Key="DarkGold">#B8860B</Color>
+    <Color x:Key="LightGold">#FFF8DC</Color>
+    
+    <!-- Luminescent Blues -->
+    <Color x:Key="LuminescentBlue">#00BCD4</Color>
+    <Color x:Key="DarkBlue">#0097A7</Color>
+    <Color x:Key="LightBlue">#B2EBF2</Color>
+    <Color x:Key="ElectricBlue">#00E5FF</Color>
+    
+    <!-- Neutral Colors -->
+    <Color x:Key="PureWhite">#FFFFFF</Color>
+    <Color x:Key="OffWhite">#FAFAFA</Color>
+    <Color x:Key="LightGray">#E0E0E0</Color>
+    <Color x:Key="MediumGray">#9E9E9E</Color>
+    <Color x:Key="DarkGray">#424242</Color>
+    <Color x:Key="CharcoalGray">#212121</Color>
+    <Color x:Key="PureBlack">#000000</Color>
+    
+    <!-- Semantic Colors -->
+    <Color x:Key="SuccessColor">#4CAF50</Color>
+    <Color x:Key="WarningColor">#FF9800</Color>
+    <Color x:Key="ErrorColor">#F44336</Color>
+    <Color x:Key="InfoColor">#00BCD4</Color>
+    
+    <!-- Base Typography Styles -->
+    <Style x:Key="BaseTextStyle" TargetType="Label">
+        <Setter Property="FontFamily" Value="OpenSansRegular"/>
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="LineBreakMode" Value="WordWrap"/>
+    </Style>
+    
+    <Style x:Key="HeaderTextStyle" TargetType="Label" BasedOn="{StaticResource BaseTextStyle}">
+        <Setter Property="FontFamily" Value="OpenSansSemibold"/>
+        <Setter Property="FontSize" Value="24"/>
+        <Setter Property="FontAttributes" Value="Bold"/>
+    </Style>
+    
+    <Style x:Key="SubHeaderTextStyle" TargetType="Label" BasedOn="{StaticResource BaseTextStyle}">
+        <Setter Property="FontFamily" Value="OpenSansSemibold"/>
+        <Setter Property="FontSize" Value="18"/>
+        <Setter Property="FontAttributes" Value="Bold"/>
+    </Style>
+    
+    <Style x:Key="BodyTextStyle" TargetType="Label" BasedOn="{StaticResource BaseTextStyle}">
+        <Setter Property="FontSize" Value="16"/>
+    </Style>
+    
+    <Style x:Key="CaptionTextStyle" TargetType="Label" BasedOn="{StaticResource BaseTextStyle}">
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="TextColor" Value="{StaticResource MediumGray}"/>
+    </Style>
+    
+    <!-- Primary Button Style -->
+    <Style x:Key="PrimaryButtonStyle" TargetType="Button">
+        <Setter Property="BackgroundColor" Value="{StaticResource PrimaryPurple}"/>
+        <Setter Property="TextColor" Value="{StaticResource PureWhite}"/>
+        <Setter Property="FontFamily" Value="OpenSansSemibold"/>
+        <Setter Property="FontSize" Value="16"/>
+        <Setter Property="CornerRadius" Value="12"/>
+        <Setter Property="Padding" Value="16,12"/>
+    </Style>
+    
+    <!-- Secondary Button Style -->
+    <Style x:Key="SecondaryButtonStyle" TargetType="Button">
+        <Setter Property="BackgroundColor" Value="Transparent"/>
+        <Setter Property="TextColor" Value="{StaticResource PrimaryPurple}"/>
+        <Setter Property="BorderColor" Value="{StaticResource PrimaryPurple}"/>
+        <Setter Property="BorderWidth" Value="2"/>
+        <Setter Property="FontFamily" Value="OpenSansSemibold"/>
+        <Setter Property="FontSize" Value="16"/>
+        <Setter Property="CornerRadius" Value="12"/>
+        <Setter Property="Padding" Value="16,12"/>
+    </Style>
+    
+    <!-- Accent Button Style -->
+    <Style x:Key="AccentButtonStyle" TargetType="Button">
+        <Setter Property="BackgroundColor" Value="{StaticResource GoldAccent}"/>
+        <Setter Property="TextColor" Value="{StaticResource PureBlack}"/>
+        <Setter Property="FontFamily" Value="OpenSansSemibold"/>
+        <Setter Property="FontSize" Value="16"/>
+        <Setter Property="CornerRadius" Value="12"/>
+        <Setter Property="Padding" Value="16,12"/>
+    </Style>
+    
+    <!-- Card Frame Style -->
+    <Style x:Key="CardFrameStyle" TargetType="Frame">
+        <Setter Property="BackgroundColor" Value="{StaticResource PureWhite}"/>
+        <Setter Property="CornerRadius" Value="12"/>
+        <Setter Property="Padding" Value="16"/>
+        <Setter Property="Margin" Value="8"/>
+        <Setter Property="HasShadow" Value="True"/>
+    </Style>
+    
+    <!-- Border Style -->
+    <Style x:Key="BorderStyle" TargetType="Border">
+        <Setter Property="Stroke" Value="{StaticResource LuminescentBlue}"/>
+        <Setter Property="StrokeThickness" Value="2"/>
+        <Setter Property="StrokeShape" Value="RoundRectangle 8"/>
+    </Style>
+    
+</ResourceDictionary>

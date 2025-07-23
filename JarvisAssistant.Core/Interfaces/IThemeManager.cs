@@ -18,7 +18,22 @@ namespace JarvisAssistant.Core.Interfaces
         /// <summary>
         /// System theme that follows the operating system's theme preference.
         /// </summary>
-        System
+        System,
+
+        /// <summary>
+        /// Desktop theme optimized for multi-panel layouts.
+        /// </summary>
+        Desktop,
+
+        /// <summary>
+        /// Mobile theme optimized for single-column layouts.
+        /// </summary>
+        Mobile,
+
+        /// <summary>
+        /// TV theme optimized for voice-first interface.
+        /// </summary>
+        TV
     }
 
     /// <summary>
@@ -33,6 +48,12 @@ namespace JarvisAssistant.Core.Interfaces
         AppTheme CurrentTheme { get; }
 
         /// <summary>
+        /// Gets the list of available themes for the current platform.
+        /// </summary>
+        /// <value>The available application themes.</value>
+        IReadOnlyList<AppTheme> AvailableThemes { get; }
+
+        /// <summary>
         /// Occurs when the current theme changes.
         /// </summary>
         event EventHandler<AppTheme>? ThemeChanged;
@@ -43,6 +64,19 @@ namespace JarvisAssistant.Core.Interfaces
         /// <param name="theme">The theme to switch to.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
         Task SwitchThemeAsync(AppTheme theme);
+
+        /// <summary>
+        /// Automatically selects and applies the optimal theme for the current platform.
+        /// </summary>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        Task AutoSelectThemeAsync();
+
+        /// <summary>
+        /// Loads theme resources dynamically.
+        /// </summary>
+        /// <param name="theme">The theme for which to load resources.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        Task LoadThemeResourcesAsync(AppTheme theme);
 
         /// <summary>
         /// Gets the system's preferred theme (light or dark).

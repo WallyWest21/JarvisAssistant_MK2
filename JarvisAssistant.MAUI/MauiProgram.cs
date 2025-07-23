@@ -1,5 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using JarvisAssistant.Core.Interfaces;
+using JarvisAssistant.MAUI.Services;
 using System;
 using System.IO;
 
@@ -62,17 +64,50 @@ public static class MauiProgram
 	{
 		try
 		{
-			// Add any required services here in the future
-			// For now, keep it minimal to avoid initialization issues
+			// Register Core interfaces with their implementations
+			services.AddSingleton<IPlatformService, PlatformService>();
+			services.AddSingleton<IThemeManager, MauiThemeManager>();
 			
-			// Example of how to add services safely:
-			// services.AddSingleton<IMyService, MyService>();
+			// Register existing services from JarvisAssistant.Services
+			services.AddSingleton<JarvisAssistant.Core.Interfaces.IErrorHandlingService, JarvisAssistant.Services.ErrorHandlingService>();
+			
+			// TODO: Register remaining services when implemented
+			// services.AddSingleton<ILLMService, LLMService>();
+			// services.AddSingleton<IVoiceService, VoiceService>();
+			// services.AddSingleton<IStatusMonitorService, StatusMonitorService>();
+
+			// Register platform-specific services
+			RegisterPlatformServices(services);
 		}
 		catch (Exception ex)
 		{
 			System.Diagnostics.Debug.WriteLine($"Error configuring services: {ex}");
 			throw;
 		}
+	}
+
+	/// <summary>
+	/// Registers platform-specific services.
+	/// </summary>
+	/// <param name="services">The service collection to configure.</param>
+	private static void RegisterPlatformServices(IServiceCollection services)
+	{
+		// Platform-specific service registrations will go here
+		// For example, different implementations for Android vs Windows
+		
+#if ANDROID
+		// Android-specific services
+		System.Diagnostics.Debug.WriteLine("Registering Android-specific services");
+#elif WINDOWS
+		// Windows-specific services
+		System.Diagnostics.Debug.WriteLine("Registering Windows-specific services");
+#elif IOS
+		// iOS-specific services
+		System.Diagnostics.Debug.WriteLine("Registering iOS-specific services");
+#elif MACCATALYST
+		// macOS-specific services
+		System.Diagnostics.Debug.WriteLine("Registering macOS-specific services");
+#endif
 	}
 }
 
