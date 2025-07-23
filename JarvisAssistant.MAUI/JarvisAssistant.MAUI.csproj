@@ -81,12 +81,20 @@
 		<PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
 		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="$(MauiVersion)" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.1" />
+		<PackageReference Include="SkiaSharp.Views.Maui.Controls" Version="2.88.8" />
+		<PackageReference Include="SkiaSharp.Views.Maui.Core" Version="2.88.8" />
 	</ItemGroup>
 
 	<ItemGroup>
 	  <ProjectReference Include="..\JarvisAssistant.Core\JarvisAssistant.Core.csproj" />
 	  <ProjectReference Include="..\JarvisAssistant.Services\JarvisAssistant.Services.csproj" />
 	  <ProjectReference Include="..\JarvisAssistant.Infrastructure\JarvisAssistant.Infrastructure.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <MauiXaml Update="Views\VoiceDemoPage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
 	</ItemGroup>
 
 </Project>

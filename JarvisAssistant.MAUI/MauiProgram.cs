@@ -2,6 +2,8 @@
 using Microsoft.Extensions.Logging;
 using JarvisAssistant.Core.Interfaces;
 using JarvisAssistant.MAUI.Services;
+using JarvisAssistant.Services;
+using SkiaSharp.Views.Maui.Controls.Hosting;
 using System;
 using System.IO;
 
@@ -23,6 +25,7 @@ public static class MauiProgram
 			var builder = MauiApp.CreateBuilder();
 			builder
 				.UseMauiApp<App>()
+				.UseSkiaSharp()
 				.ConfigureFonts(fonts =>
 				{
 					fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
@@ -70,6 +73,11 @@ public static class MauiProgram
 			
 			// Register existing services from JarvisAssistant.Services
 			services.AddSingleton<JarvisAssistant.Core.Interfaces.IErrorHandlingService, JarvisAssistant.Services.ErrorHandlingService>();
+			
+			// Register voice mode services
+			services.AddSingleton<IVoiceModeManager, VoiceModeManager>();
+			services.AddSingleton<IVoiceCommandProcessor, VoiceCommandProcessor>();
+			services.AddSingleton<IVoiceService, StubVoiceService>();
 			
 			// TODO: Register remaining services when implemented
 			// services.AddSingleton<ILLMService, LLMService>();
