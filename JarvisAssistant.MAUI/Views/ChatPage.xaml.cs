@@ -11,6 +11,7 @@ public partial class ChatPage : ContentPage
     public ChatPage() : this(null)
     {
         // Parameterless constructor for MAUI routing
+        System.Diagnostics.Debug.WriteLine("=== ChatPage Parameterless Constructor Called ===");
     }
 
     public ChatPage(ChatViewModel? viewModel = null)
@@ -20,41 +21,85 @@ public partial class ChatPage : ContentPage
             System.Diagnostics.Debug.WriteLine("=== ChatPage Constructor Started ===");
             
             InitializeComponent();
-            System.Diagnostics.Debug.WriteLine("InitializeComponent completed");
+            System.Diagnostics.Debug.WriteLine("? InitializeComponent completed");
             
-            // If no viewmodel provided, try to get from DI or create a fallback
-            if (viewModel == null)
-            {
-                try
-                {
-                    var services = Application.Current?.Handler?.MauiContext?.Services;
-                    if (services != null)
-                    {
-                        viewModel = services.GetService<ChatViewModel>();
-                        System.Diagnostics.Debug.WriteLine($"Got ChatViewModel from DI: {viewModel != null}");
-                    }
-                    else
-                    {
-                        System.Diagnostics.Debug.WriteLine("Services container is null");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Error getting ChatViewModel from DI: {ex}");
-                }
-            }
-
-            // Create fallback viewmodel if still null
-            if (viewModel == null)
-            {
-                System.Diagnostics.Debug.WriteLine("Creating fallback ChatViewModel");
-                viewModel = CreateFallbackViewModel();
-            }
-
-            _viewModel = viewModel;
+            // Get or create ViewModel
+            _viewModel = GetOrCreateViewModel(viewModel);
             BindingContext = _viewModel;
-            System.Diagnostics.Debug.WriteLine($"BindingContext set to: {_viewModel.GetType().Name}");
+            System.Diagnostics.Debug.WriteLine($"? BindingContext set to: {_viewModel.GetType().Name}");
 
+            // Setup messaging and platform behaviors
+            SetupMessaging();
+            SetupPlatformBehaviors();
+            
+            System.Diagnostics.Debug.WriteLine("=== ChatPage Constructor Completed Successfully ===");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"? CRITICAL ERROR in ChatPage constructor: {ex}");
+            System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+            
+            // Try to create a minimal fallback to prevent total failure
+            try
+            {
+                System.Diagnostics.Debug.WriteLine("Attempting to create fallback ViewModel...");
+                _viewModel = CreateFallbackViewModel();
+                BindingContext = _viewModel;
+                System.Diagnostics.Debug.WriteLine("? Fallback ViewModel created successfully");
+            }
+            catch (Exception fallbackEx)
+            {
+                System.Diagnostics.Debug.WriteLine($"? Even fallback failed: {fallbackEx}");
+                throw; // Re-throw if we can't even create a fallback
+            }
+        }
+    }
+
+    private ChatViewModel GetOrCreateViewModel(ChatViewModel? providedViewModel)
+    {
+        // If a viewmodel was provided directly, use it
+        if (providedViewModel != null)
+        {
+            System.Diagnostics.Debug.WriteLine("? Using provided ChatViewModel");
+            return providedViewModel;
+        }
+
+        // Try to get from DI container
+        try
+        {
+            var services = Application.Current?.Handler?.MauiContext?.Services;
+            if (services != null)
+            {
+                var diViewModel = services.GetService<ChatViewModel>();
+                if (diViewModel != null)
+                {
+                    System.Diagnostics.Debug.WriteLine("? Got ChatViewModel from DI container");
+                    return diViewModel;
+                }
+            }
+            System.Diagnostics.Debug.WriteLine("?? Services container is null or ChatViewModel not registered");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"?? Error getting ChatViewModel from DI: {ex.Message}");
+        }
+
+        // Create fallback viewmodel
+        System.Diagnostics.Debug.WriteLine("Creating fallback ChatViewModel");
+        return CreateFallbackViewModel();
+    }
+
+    private ChatViewModel CreateFallbackViewModel()
+    {
+        System.Diagnostics.Debug.WriteLine("Creating fallback ChatViewModel with null services");
+        // Create a viewmodel with null services - the viewmodel handles this gracefully
+        return new ChatViewModel(null, null, null, null, null);
+    }
+
+    private void SetupMessaging()
+    {
+        try
+        {
             // Subscribe to scroll messages using modern messaging
             WeakReferenceMessenger.Default.Register<string>(this, (recipient, message) =>
             {
@@ -63,36 +108,12 @@ public partial class ChatPage : ContentPage
                     OnScrollToBottom(_viewModel);
                 }
             });
-
-            // Setup platform-specific behaviors
-            SetupPlatformBehaviors();
-            
-            System.Diagnostics.Debug.WriteLine("=== ChatPage Constructor Completed Successfully ===");
+            System.Diagnostics.Debug.WriteLine("? Messaging setup completed");
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"CRITICAL ERROR in ChatPage constructor: {ex}");
-            System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
-            
-            // Try to create a minimal fallback
-            try
-            {
-                _viewModel = CreateFallbackViewModel();
-                BindingContext = _viewModel;
-            }
-            catch (Exception fallbackEx)
-            {
-                System.Diagnostics.Debug.WriteLine($"Even fallback failed: {fallbackEx}");
-                throw; // Re-throw if we can't even create a fallback
-            }
+            System.Diagnostics.Debug.WriteLine($"?? Error setting up messaging: {ex.Message}");
         }
-    }
-
-    private ChatViewModel CreateFallbackViewModel()
-    {
-        System.Diagnostics.Debug.WriteLine("Creating fallback ChatViewModel with null services");
-        // Create a viewmodel with null services - the viewmodel handles this gracefully
-        return new ChatViewModel(null, null, null, null, null);
     }
 
     private void SetupPlatformBehaviors()
@@ -111,10 +132,11 @@ public partial class ChatPage : ContentPage
             {
                 SetupTVBehaviors();
             }
+            System.Diagnostics.Debug.WriteLine($"? Platform behaviors setup for {DeviceInfo.Idiom}");
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Error setting up platform behaviors: {ex}");
+            System.Diagnostics.Debug.WriteLine($"?? Error setting up platform behaviors: {ex.Message}");
         }
     }
 

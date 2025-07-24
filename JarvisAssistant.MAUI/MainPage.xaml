@@ -77,7 +77,7 @@
 
         <!-- Main Content -->
         <ScrollView HorizontalOptions="Center">
-            <VerticalStackLayout Padding="40,60" Spacing="40" HorizontalOptions="Center">
+            <VerticalStackLayout Padding="40,60" Spacing="40" HorizontalOptions="CenterAndExpand">
                 
                 <!-- Main Logo/Icon -->
                 <Border BackgroundColor="Transparent"
@@ -176,6 +176,8 @@
         <!-- Status Panel Overlay -->
         <views:StatusPanelView x:Name="StatusPanel"
                                VerticalOptions="Fill"
-                               HorizontalOptions="Fill" />
+                               HorizontalOptions="Fill"
+                               BackgroundColor="Transparent"
+                               InputTransparent="True" />
     </Grid>
 </ContentPage>

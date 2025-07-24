@@ -12,6 +12,8 @@ public partial class VoiceDemoPage : ContentPage
     private readonly IVoiceCommandProcessor? _commandProcessor;
     private readonly IPlatformService? _platformService;
     private VoiceIndicator? _voiceIndicator;
+    private Label? _statusLabel;
+    private Label? _responseLabel;
 
     public VoiceDemoPage()
     {
@@ -74,21 +76,8 @@ public partial class VoiceDemoPage : ContentPage
             HorizontalOptions = LayoutOptions.Center
         };
 
-        // Voice indicator
-        _voiceIndicator = new VoiceIndicator
-        {
-            WidthRequest = _platformService?.IsGoogleTV() == true ? 120 : 80,
-            HeightRequest = _platformService?.IsGoogleTV() == true ? 120 : 80,
-            HorizontalOptions = LayoutOptions.Center,
-            PrimaryColor = Colors.DodgerBlue,
-            AccentColor = Colors.LightBlue,
-            UseTVSizing = _platformService?.IsGoogleTV() == true
-        };
-
-        _voiceIndicator.Tapped += OnVoiceIndicatorTapped;
-
         // Status label
-        var statusLabel = new Label
+        _statusLabel = new Label
         {
             Text = "Voice mode inactive",
             FontSize = 18,
@@ -134,6 +123,16 @@ public partial class VoiceDemoPage : ContentPage
         };
         testCommandButton.Clicked += OnTestCommandClicked;
 
+        var backButton = new Button
+        {
+            Text = "Back to Main",
+            BackgroundColor = Colors.DarkBlue,
+            TextColor = Colors.White,
+            FontSize = 16,
+            Padding = new Thickness(20, 10)
+        };
+        backButton.Clicked += OnBackClicked;
+
         // Only show toggle buttons for non-TV platforms
         if (_platformService?.IsGoogleTV() != true)
         {
@@ -141,6 +140,7 @@ public partial class VoiceDemoPage : ContentPage
             buttonsStack.Children.Add(disableButton);
         }
         buttonsStack.Children.Add(testCommandButton);
+        buttonsStack.Children.Add(backButton);
 
         // Instructions
         var instructionsLabel = new Label
@@ -163,7 +163,7 @@ public partial class VoiceDemoPage : ContentPage
             Margin = new Thickness(0, 20, 0, 0)
         };
 
-        var responseLabel = new Label
+        _responseLabel = new Label
         {
             Text = "Voice responses will appear here...",
             FontSize = 14,
@@ -171,26 +171,18 @@ public partial class VoiceDemoPage : ContentPage
             HorizontalOptions = LayoutOptions.Fill
         };
 
-        responseFrame.Content = responseLabel;
+        responseFrame.Content = _responseLabel;
 
         // Add all elements to main stack
         mainStack.Children.Add(titleLabel);
         mainStack.Children.Add(platformLabel);
         mainStack.Children.Add(isTVLabel);
-        mainStack.Children.Add(_voiceIndicator);
-        mainStack.Children.Add(statusLabel);
+        mainStack.Children.Add(_statusLabel);
         mainStack.Children.Add(buttonsStack);
         mainStack.Children.Add(instructionsLabel);
         mainStack.Children.Add(responseFrame);
 
         Content = new ScrollView { Content = mainStack };
-
-        // Store references for event handling
-        _voiceIndicator.BindingContext = new
-        {
-            StatusLabel = statusLabel,
-            ResponseLabel = responseLabel
-        };
     }
 
     private string GetInstructions()
@@ -203,7 +195,7 @@ public partial class VoiceDemoPage : ContentPage
         }
         else
         {
-            return "Tap the microphone to toggle voice mode.\n" +
+            return "Use the buttons to control voice mode.\n" +
                    "When active, say \"Hey Jarvis\" followed by your command.\n" +
                    "Try: \"What's my status\", \"Generate code\", \"Help\"";
         }
@@ -225,19 +217,15 @@ public partial class VoiceDemoPage : ContentPage
         }
     }
 
-    private async void OnVoiceIndicatorTapped(object? sender, EventArgs e)
-    {
-        if (_voiceModeManager?.CanToggleVoiceMode == true)
-        {
-            await _voiceModeManager.ToggleVoiceModeAsync();
-        }
-    }
-
     private async void OnEnableVoiceClicked(object? sender, EventArgs e)
     {
         if (_voiceModeManager != null)
         {
             await _voiceModeManager.EnableVoiceModeAsync();
+        }
+        else
+        {
+            UpdateResponseLabel("Voice services are not available.");
         }
     }
 
@@ -246,6 +234,10 @@ public partial class VoiceDemoPage : ContentPage
         if (_voiceModeManager != null)
         {
             await _voiceModeManager.DisableVoiceModeAsync();
+        }
+        else
+        {
+            UpdateResponseLabel("Voice services are not available.");
         }
     }
 
@@ -265,11 +257,34 @@ public partial class VoiceDemoPage : ContentPage
             var random = new Random();
             var command = testCommands[random.Next(testCommands.Length)];
 
-            var result = await _commandProcessor.ProcessTextCommandAsync(
-                command, 
-                Core.Models.VoiceCommandSource.Manual);
+            try
+            {
+                var result = await _commandProcessor.ProcessTextCommandAsync(
+                    command, 
+                    Core.Models.VoiceCommandSource.Manual);
 
-            UpdateResponseLabel($"Test Command: \"{command}\"\nResponse: {result.Response}");
+                UpdateResponseLabel($"Test Command: \"{command}\"\nResponse: {result.Response}");
+            }
+            catch (Exception ex)
+            {
+                UpdateResponseLabel($"Error processing command: {ex.Message}");
+            }
+        }
+        else
+        {
+            UpdateResponseLabel("Voice command processor is not available.");
+        }
+    }
+
+    private async void OnBackClicked(object? sender, EventArgs e)
+    {
+        try
+        {
+            await Shell.Current.GoToAsync("..");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error navigating back: {ex}");
         }
     }
 
@@ -277,18 +292,6 @@ public partial class VoiceDemoPage : ContentPage
     {
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            if (_voiceIndicator != null)
-            {
-                _voiceIndicator.State = e.NewState switch
-                {
-                    Core.Interfaces.VoiceModeState.Inactive => VoiceIndicatorState.Inactive,
-                    Core.Interfaces.VoiceModeState.Listening => VoiceIndicatorState.Listening,
-                    Core.Interfaces.VoiceModeState.Processing => VoiceIndicatorState.Processing,
-                    Core.Interfaces.VoiceModeState.Error => VoiceIndicatorState.Error,
-                    _ => VoiceIndicatorState.Inactive
-                };
-            }
-
             UpdateStatusLabel($"Voice mode: {e.NewState}");
         });
     }
@@ -305,10 +308,7 @@ public partial class VoiceDemoPage : ContentPage
     {
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            if (_voiceIndicator != null)
-            {
-                _voiceIndicator.AudioLevel = e.AudioLevel;
-            }
+            // Update any voice activity indicators if needed
         });
     }
 
@@ -324,32 +324,24 @@ public partial class VoiceDemoPage : ContentPage
     {
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            var status = e.Result.Success ? "✓" : "✗";
+            var status = e.Result.Success ? "?" : "?";
             UpdateResponseLabel($"{status} \"{e.Command.Text}\"\nResponse: {e.Result.Response}\nTime: {e.ProcessingTime.TotalMilliseconds:F0}ms");
         });
     }
 
     private void UpdateStatusLabel(string text)
     {
-        if (_voiceIndicator?.BindingContext is { } context)
+        if (_statusLabel != null)
         {
-            var properties = context.GetType().GetProperty("StatusLabel");
-            if (properties?.GetValue(context) is Label statusLabel)
-            {
-                statusLabel.Text = text;
-            }
+            _statusLabel.Text = text;
         }
     }
 
     private void UpdateResponseLabel(string text)
     {
-        if (_voiceIndicator?.BindingContext is { } context)
+        if (_responseLabel != null)
         {
-            var properties = context.GetType().GetProperty("ResponseLabel");
-            if (properties?.GetValue(context) is Label responseLabel)
-            {
-                responseLabel.Text = text;
-            }
+            _responseLabel.Text = text;
         }
     }
 
@@ -369,11 +361,6 @@ public partial class VoiceDemoPage : ContentPage
         {
             _commandProcessor.CommandReceived -= OnCommandReceived;
             _commandProcessor.CommandProcessed -= OnCommandProcessed;
-        }
-
-        if (_voiceIndicator != null)
-        {
-            _voiceIndicator.Tapped -= OnVoiceIndicatorTapped;
         }
     }
 }

@@ -148,13 +148,14 @@
     </ContentView.Resources>
 
     <!-- Main Container with Platform-Specific Layouts -->
-    <Grid>
+    <Grid InputTransparent="True">
         <!-- Desktop Layout: Always Visible Sidebar -->
         <Frame x:Name="DesktopPanel"
                Style="{StaticResource DesktopPanelStyle}"
                IsVisible="{OnPlatform Default=False, WinUI=True, MacCatalyst=True}"
                VerticalOptions="FillAndExpand"
-               HorizontalOptions="Start">
+               HorizontalOptions="Start"
+               InputTransparent="False">
             
             <StackLayout Spacing="8">
                 <!-- Header -->
@@ -199,7 +200,8 @@
         <!-- Mobile Layout: Collapsible Panel -->
         <Grid x:Name="MobileContainer"
               IsVisible="{OnPlatform Default=True, WinUI=False, MacCatalyst=False}"
-              VerticalOptions="Fill" >
+              VerticalOptions="Fill"
+              InputTransparent="False" >
             
             <!-- Backdrop for Expanded Panel -->
             <BoxView BackgroundColor="#80000000"
@@ -306,7 +308,8 @@
         <!-- TV Layout: Minimal Corner Overlay -->
         <Frame x:Name="TvOverlay"
                Style="{StaticResource TvOverlayStyle}"
-               IsVisible="{OnPlatform Default=False, Tizen=True}">
+               IsVisible="{OnPlatform Default=False, Tizen=True}"
+               InputTransparent="False">
             
             <StackLayout Spacing="4">
                 <!-- Compact Status List -->

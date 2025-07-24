@@ -14,6 +14,9 @@ public partial class MainPage : ContentPage
     {
         InitializeComponent();
         
+        // Add debug output for constructor
+        System.Diagnostics.Debug.WriteLine("=== MainPage Constructor Started ===");
+        
         // Get services from DI if available
         try
         {
@@ -27,14 +30,18 @@ public partial class MainPage : ContentPage
             {
                 StatusPanel.BindingContext = statusPanelViewModel;
             }
+            
+            System.Diagnostics.Debug.WriteLine("✅ Services initialized");
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Error getting services: {ex}");
+            System.Diagnostics.Debug.WriteLine($"⚠️ Error getting services: {ex}");
         }
 
         // Update status based on system state
         UpdateSystemStatus();
+        
+        System.Diagnostics.Debug.WriteLine("=== MainPage Constructor Completed ===");
     }
 
     protected override async void OnAppearing()
@@ -43,6 +50,9 @@ public partial class MainPage : ContentPage
         await InitializeStatusMonitoringAsync();
         UpdateSystemStatus();
         _logger?.LogInformation("MainPage appeared");
+        
+        // Test that buttons are accessible
+        TestButtonAvailability();
     }
 
     private async Task InitializeStatusMonitoringAsync()
@@ -80,9 +90,12 @@ public partial class MainPage : ContentPage
 
     private async void OnStartChatClicked(object sender, EventArgs e)
     {
+        // Add immediate debug output
+        System.Diagnostics.Debug.WriteLine("🔥🔥🔥 START CHAT BUTTON CLICKED - EVENT IS FIRING! 🔥🔥🔥");
+        
         try
         {
-            _logger?.LogInformation("Start Chat button clicked - beginning navigation");
+            _logger?.LogInformation("=== Start Chat Button Clicked ===");
             System.Diagnostics.Debug.WriteLine("=== Start Chat Button Clicked ===");
             
             // Disable button temporarily to prevent double-clicks
@@ -92,33 +105,21 @@ public partial class MainPage : ContentPage
                 System.Diagnostics.Debug.WriteLine("Button disabled temporarily");
             }
 
-            // Check if Shell.Current is available
-            if (Shell.Current == null)
-            {
-                var errorMsg = "Shell.Current is null - navigation system not available";
-                _logger?.LogError(errorMsg);
-                System.Diagnostics.Debug.WriteLine($"ERROR: {errorMsg}");
-                await DisplayAlert("Navigation Error", "The navigation system is not available. Please restart the application.", "OK");
-                return;
-            }
-
-            System.Diagnostics.Debug.WriteLine($"Shell.Current available: {Shell.Current.GetType().Name}");
-            
-            // Check if we're on the UI thread
+            // Ensure we're on the main thread
             if (!MainThread.IsMainThread)
             {
                 System.Diagnostics.Debug.WriteLine("Not on main thread - dispatching to main thread");
-                MainThread.BeginInvokeOnMainThread(async () => await NavigateToChatPage());
+                MainThread.BeginInvokeOnMainThread(async () => await NavigateToChatPageDirectly());
                 return;
             }
 
-            await NavigateToChatPage();
+            await NavigateToChatPageDirectly();
         }
         catch (Exception ex)
         {
             _logger?.LogError(ex, "Error in OnStartChatClicked");
             System.Diagnostics.Debug.WriteLine($"ERROR in OnStartChatClicked: {ex}");
-            await DisplayAlert("Error", $"Failed to navigate to chat: {ex.Message}", "OK");
+            await DisplayAlert("Navigation Error", $"Failed to navigate to chat: {ex.Message}", "OK");
         }
         finally
         {
@@ -131,77 +132,59 @@ public partial class MainPage : ContentPage
         }
     }
 
-    private async Task NavigateToChatPage()
+    private async Task NavigateToChatPageDirectly()
     {
-        System.Diagnostics.Debug.WriteLine("=== NavigateToChatPage Method Started ===");
-        
-        var navigationAttempts = new[]
+        try
         {
-            "ChatPage"
-            // Removed the problematic // routes that were causing issues
-        };
+            System.Diagnostics.Debug.WriteLine("=== NavigateToChatPageDirectly Started ===");
+            
+            // Check if Shell.Current is available
+            if (Shell.Current == null)
+            {
+                System.Diagnostics.Debug.WriteLine("ERROR: Shell.Current is null");
+                await DisplayAlert("Navigation Error", "Navigation system not available. Please restart the app.", "OK");
+                return;
+            }
 
-        foreach (var route in navigationAttempts)
-        {
-            try
-            {
-                _logger?.LogInformation($"Attempting navigation to: {route}");
-                System.Diagnostics.Debug.WriteLine($"Attempting navigation to: {route}");
-                
-                // Check if Shell.Current is still available
-                if (Shell.Current == null)
-                {
-                    System.Diagnostics.Debug.WriteLine("ERROR: Shell.Current became null during navigation");
-                    throw new InvalidOperationException("Shell.Current is null");
-                }
-                
-                System.Diagnostics.Debug.WriteLine($"Shell.Current type: {Shell.Current.GetType().Name}");
-                System.Diagnostics.Debug.WriteLine($"Current page: {Shell.Current.CurrentPage?.GetType().Name ?? "NULL"}");
-                
-                // Try the navigation
-                await Shell.Current.GoToAsync(route);
-                
-                _logger?.LogInformation($"Navigation successful to: {route}");
-                System.Diagnostics.Debug.WriteLine($"SUCCESS: Navigation completed to {route}");
-                
-                // Verify we actually navigated
-                await Task.Delay(100); // Give time for navigation to complete
-                System.Diagnostics.Debug.WriteLine($"After navigation, current page: {Shell.Current.CurrentPage?.GetType().Name ?? "NULL"}");
-                
-                return; // Success - exit the loop
-            }
-            catch (Exception navEx)
-            {
-                _logger?.LogWarning(navEx, $"Navigation attempt failed for route: {route}");
-                System.Diagnostics.Debug.WriteLine($"Navigation attempt failed for {route}: {navEx.Message}");
-                System.Diagnostics.Debug.WriteLine($"Exception type: {navEx.GetType().Name}");
-                System.Diagnostics.Debug.WriteLine($"Stack trace: {navEx.StackTrace}");
-                
-                // Continue to next route attempt
-                continue;
-            }
+            System.Diagnostics.Debug.WriteLine($"Shell.Current available: {Shell.Current.GetType().Name}");
+            
+            // Direct navigation to ChatPage - this route is registered in AppShell.xaml.cs
+            System.Diagnostics.Debug.WriteLine("Attempting direct navigation to ChatPage");
+            await Shell.Current.GoToAsync("ChatPage");
+            
+            System.Diagnostics.Debug.WriteLine("SUCCESS: Navigation completed to ChatPage");
+            _logger?.LogInformation("Successfully navigated to ChatPage");
         }
-
-        // If we get here, all navigation attempts failed
-        var finalError = "All navigation attempts failed. Please check if the ChatPage is properly registered in AppShell and can be instantiated.";
-        _logger?.LogError(finalError);
-        System.Diagnostics.Debug.WriteLine($"FINAL ERROR: {finalError}");
-        
-        // Show user-friendly error dialog
-        await DisplayAlert("Navigation Failed", 
-            "Unable to open the chat page. This might be due to:\n" +
-            "1. Missing dependencies\n" +
-            "2. Route registration issues\n" +
-            "3. Page construction problems\n\n" +
-            "Please check the debug output for details.", "OK");
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"ERROR in NavigateToChatPageDirectly: {ex}");
+            System.Diagnostics.Debug.WriteLine($"Exception type: {ex.GetType().Name}");
+            System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+            
+            _logger?.LogError(ex, "Failed to navigate to ChatPage");
+            
+            // Show detailed error message to help diagnose the issue
+            await DisplayAlert("Navigation Failed", 
+                $"Unable to navigate to the chat page.\n\n" +
+                $"Error: {ex.Message}\n\n" +
+                $"This might be due to:\n" +
+                $"• Missing route registration\n" +
+                $"• ChatPage constructor issues\n" +
+                $"• Dependency injection problems\n\n" +
+                $"Check the debug output for details.", "OK");
+        }
     }
 
     private async void OnVoiceDemoClicked(object sender, EventArgs e)
     {
+        // Add immediate debug output
+        System.Diagnostics.Debug.WriteLine("🔥🔥🔥 VOICE DEMO BUTTON CLICKED - EVENT IS FIRING! 🔥🔥🔥");
+        
         try
         {
             _logger?.LogInformation("Navigating to voice demo page");
             System.Diagnostics.Debug.WriteLine("=== Voice Demo Button Clicked ===");
+            
             await Shell.Current.GoToAsync("VoiceDemoPage");
         }
         catch (Exception ex)
@@ -214,11 +197,15 @@ public partial class MainPage : ContentPage
 
     private async void OnSettingsClicked(object sender, EventArgs e)
     {
+        // Add immediate debug output
+        System.Diagnostics.Debug.WriteLine("🔥🔥🔥 SETTINGS BUTTON CLICKED - EVENT IS FIRING! 🔥🔥🔥");
+        
         try
         {
             _logger?.LogInformation("Settings clicked");
             System.Diagnostics.Debug.WriteLine("=== Settings Button Clicked ===");
-            // For now, show a placeholder alert - settings page can be implemented later
+            
+            // Show the settings coming soon message
             await DisplayAlert("Settings", "Settings page coming soon!", "OK");
         }
         catch (Exception ex)
@@ -227,6 +214,40 @@ public partial class MainPage : ContentPage
             System.Diagnostics.Debug.WriteLine($"ERROR in settings: {ex}");
             await DisplayAlert("Error", "Failed to open settings. Please try again.", "OK");
         }
+    }
+
+    private void TestButtonAvailability()
+    {
+        System.Diagnostics.Debug.WriteLine("=== Testing Button Availability ===");
+        
+        if (StartChatBtn != null)
+        {
+            System.Diagnostics.Debug.WriteLine($"✅ StartChatBtn found - Enabled: {StartChatBtn.IsEnabled}, Visible: {StartChatBtn.IsVisible}");
+        }
+        else
+        {
+            System.Diagnostics.Debug.WriteLine("❌ StartChatBtn is NULL!");
+        }
+        
+        if (VoiceDemoBtn != null)
+        {
+            System.Diagnostics.Debug.WriteLine($"✅ VoiceDemoBtn found - Enabled: {VoiceDemoBtn.IsEnabled}, Visible: {VoiceDemoBtn.IsVisible}");
+        }
+        else
+        {
+            System.Diagnostics.Debug.WriteLine("❌ VoiceDemoBtn is NULL!");
+        }
+        
+        if (SettingsBtn != null)
+        {
+            System.Diagnostics.Debug.WriteLine($"✅ SettingsBtn found - Enabled: {SettingsBtn.IsEnabled}, Visible: {SettingsBtn.IsVisible}");
+        }
+        else
+        {
+            System.Diagnostics.Debug.WriteLine("❌ SettingsBtn is NULL!");
+        }
+        
+        System.Diagnostics.Debug.WriteLine("=== Button Availability Test Complete ===");
     }
 }
 
