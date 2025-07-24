@@ -3,10 +3,14 @@ using System.Text;
 using System.Text.Json;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 using Moq.Contrib.HttpClient;
+using Moq.Protected;
 using JarvisAssistant.Core.Models;
 using JarvisAssistant.Services.LLM;
+using JarvisAssistant.Services.Extensions;
+using static Moq.Protected.ItExpr;
 
 namespace JarvisAssistant.UnitTests.Services.LLM
 {
@@ -21,7 +25,12 @@ namespace JarvisAssistant.UnitTests.Services.LLM
         {
             _mockLogger = new Mock<ILogger<OllamaClient>>();
             _mockHttpHandler = new Mock<HttpMessageHandler>();
-            _httpClient = new HttpClient(_mockHttpHandler.Object);
+            
+            // Create HttpClient with the mock handler
+            _httpClient = _mockHttpHandler.CreateClient();
+            _httpClient.BaseAddress = new Uri("http://localhost:11434");
+            
+            // Create OllamaClient with pre-configured HttpClient
             _ollamaClient = new OllamaClient(_httpClient, _mockLogger.Object);
         }
 
@@ -32,7 +41,7 @@ namespace JarvisAssistant.UnitTests.Services.LLM
             var expectedResponse = new { response = "Test response from Ollama", done = true };
             var responseJson = JsonSerializer.Serialize(expectedResponse);
             
-            _mockHttpHandler.SetupRequest(HttpMethod.Post, "http://100.108.155.28:11434/api/generate")
+            _mockHttpHandler.SetupRequest(HttpMethod.Post, "http://localhost:11434/api/generate")
                 .ReturnsResponse(HttpStatusCode.OK, responseJson, "application/json");
 
             // Act
@@ -49,7 +58,7 @@ namespace JarvisAssistant.UnitTests.Services.LLM
             var expectedResponse = new { response = "Code response", done = true };
             var responseJson = JsonSerializer.Serialize(expectedResponse);
             
-            _mockHttpHandler.SetupRequest(HttpMethod.Post, "http://100.108.155.28:11434/api/generate")
+            _mockHttpHandler.SetupRequest(HttpMethod.Post, "http://localhost:11434/api/generate")
                 .ReturnsResponse(HttpStatusCode.OK, responseJson, "application/json");
 
             // Act
@@ -59,33 +68,56 @@ namespace JarvisAssistant.UnitTests.Services.LLM
             result.Should().Be("Code response");
             
             // Verify the request was made with the correct model
-            _mockHttpHandler.VerifyRequest(HttpMethod.Post, "http://100.108.155.28:11434/api/generate", Times.Once());
+            _mockHttpHandler.VerifyRequest(HttpMethod.Post, "http://localhost:11434/api/generate", Times.Once());
         }
 
         [Fact]
         public async Task GenerateAsync_WithHttpError_ThrowsInvalidOperationException()
         {
             // Arrange
-            _mockHttpHandler.SetupRequest(HttpMethod.Post, "http://100.108.155.28:11434/api/generate")
+            _mockHttpHandler.SetupRequest(HttpMethod.Post, "http://localhost:11434/api/generate")
                 .ReturnsResponse(HttpStatusCode.InternalServerError, "Internal Server Error");
 
             // Act & Assert
-            var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+            var exception = await Assert.ThrowsAsync<HttpRequestException>(
                 () => _ollamaClient.GenerateAsync("Test prompt"));
             
-            exception.Message.Should().Contain("Unable to connect to Ollama server");
+            exception.Message.Should().Contain("Ollama API returned InternalServerError");
         }
 
         [Fact]
         public async Task GenerateAsync_WithNetworkError_ThrowsInvalidOperationException()
         {
-            // Arrange
-            _mockHttpHandler.SetupRequest(HttpMethod.Post, "http://100.108.155.28:11434/api/generate")
-                .Throws(new HttpRequestException("Network error"));
+            // Arrange - Create properly configured HTTP mock
+            var mockHandler = new Mock<HttpMessageHandler>(MockBehavior.Strict);
+            
+            var httpClient = new HttpClient(mockHandler.Object)
+            {
+                BaseAddress = new Uri("http://localhost:11434"),
+                Timeout = TimeSpan.FromMinutes(5)
+            };
+            
+            // Create options that exactly match the HttpClient configuration
+            var options = Options.Create(new OllamaLLMOptions
+            {
+                BaseUrl = "http://localhost:11434",  // Matches httpClient.BaseAddress
+                Timeout = TimeSpan.FromMinutes(5)    // Matches httpClient.Timeout
+            });
+            
+            var ollamaClient = new OllamaClient(httpClient, _mockLogger.Object, options);
+
+            // Setup the mock to throw HttpRequestException AFTER creating the client
+            mockHandler
+                .Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>())
+                .ThrowsAsync(new HttpRequestException("Connection refused"));
 
             // Act & Assert
             var exception = await Assert.ThrowsAsync<InvalidOperationException>(
-                () => _ollamaClient.GenerateAsync("Test prompt"));
+                () => ollamaClient.GenerateAsync("Test prompt"));
             
             exception.Message.Should().Contain("Unable to connect to Ollama server");
         }
@@ -105,7 +137,7 @@ namespace JarvisAssistant.UnitTests.Services.LLM
             var streamContent = string.Join("\n", streamData.Select(x => JsonSerializer.Serialize(x)));
             var stream = new MemoryStream(Encoding.UTF8.GetBytes(streamContent));
 
-            _mockHttpHandler.SetupRequest(HttpMethod.Post, "http://100.108.155.28:11434/api/generate")
+            _mockHttpHandler.SetupRequest(HttpMethod.Post, "http://localhost:11434/api/generate")
                 .ReturnsResponse(HttpStatusCode.OK, stream, "application/json");
 
             // Act
@@ -138,7 +170,7 @@ namespace JarvisAssistant.UnitTests.Services.LLM
 
             var responseJson = JsonSerializer.Serialize(modelsResponse);
             
-            _mockHttpHandler.SetupRequest(HttpMethod.Get, "http://100.108.155.28:11434/api/tags")
+            _mockHttpHandler.SetupRequest(HttpMethod.Get, "http://localhost:11434/api/tags")
                 .ReturnsResponse(HttpStatusCode.OK, responseJson, "application/json");
 
             // Act
@@ -154,7 +186,7 @@ namespace JarvisAssistant.UnitTests.Services.LLM
         public async Task GetAvailableModelsAsync_WithError_ReturnsEmptyList()
         {
             // Arrange
-            _mockHttpHandler.SetupRequest(HttpMethod.Get, "http://100.108.155.28:11434/api/tags")
+            _mockHttpHandler.SetupRequest(HttpMethod.Get, "http://localhost:11434/api/tags")
                 .ReturnsResponse(HttpStatusCode.InternalServerError);
 
             // Act
@@ -178,7 +210,7 @@ namespace JarvisAssistant.UnitTests.Services.LLM
             var responseJson = JsonSerializer.Serialize(expectedResponse);
             
             var httpRequestCapture = new List<HttpRequestMessage>();
-            _mockHttpHandler.SetupRequest(HttpMethod.Post, "http://100.108.155.28:11434/api/generate")
+            _mockHttpHandler.SetupRequest(HttpMethod.Post, "http://localhost:11434/api/generate")
                 .ReturnsResponse(HttpStatusCode.OK, responseJson, "application/json")
                 .Callback<HttpRequestMessage, CancellationToken>((request, ct) => httpRequestCapture.Add(request));
 

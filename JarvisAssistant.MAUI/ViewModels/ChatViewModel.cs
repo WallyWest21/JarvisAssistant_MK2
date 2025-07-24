@@ -17,16 +17,33 @@ namespace JarvisAssistant.MAUI.ViewModels
         private readonly IVoiceCommandProcessor? _voiceCommandProcessor;
         private readonly ILogger<ChatViewModel>? _logger;
 
-        // Use properties instead of fields for AOT compatibility
-        public string CurrentMessage { get; set; } = string.Empty;
-        public bool IsVoiceModeActive { get; set; }
-        public bool IsSending { get; set; }
-        public bool IsListening { get; set; }
-        public bool IsConnected { get; set; } = true;
-        public string StatusMessage { get; set; } = "Ready";
-        public double VoiceActivityLevel { get; set; }
-        public string VoiceCommandFeedback { get; set; } = string.Empty;
-        public bool ShowVoiceToggle { get; set; } = true;
+        // Use ObservableProperty attributes for proper UI binding
+        [ObservableProperty]
+        private string currentMessage = string.Empty;
+
+        [ObservableProperty]
+        private bool isVoiceModeActive;
+
+        [ObservableProperty]
+        private bool isSending;
+
+        [ObservableProperty]
+        private bool isListening;
+
+        [ObservableProperty]
+        private bool isConnected = true;
+
+        [ObservableProperty]
+        private string statusMessage = "Ready";
+
+        [ObservableProperty]
+        private double voiceActivityLevel;
+
+        [ObservableProperty]
+        private string voiceCommandFeedback = string.Empty;
+
+        [ObservableProperty]
+        private bool showVoiceToggle = true;
 
         public ObservableCollection<ChatMessage> Messages { get; } = new();
 
@@ -58,14 +75,14 @@ namespace JarvisAssistant.MAUI.ViewModels
             // TV platform: Always active voice mode, no toggle
             if (DeviceInfo.Idiom == DeviceIdiom.TV)
             {
-                IsVoiceModeActive = true;
-                ShowVoiceToggle = false;
+                isVoiceModeActive = true;
+                showVoiceToggle = false;
             }
             // Desktop/Mobile: Show toggle, default off
             else
             {
-                IsVoiceModeActive = false;
-                ShowVoiceToggle = true;
+                isVoiceModeActive = false;
+                showVoiceToggle = true;
             }
         }
 
@@ -78,26 +95,26 @@ namespace JarvisAssistant.MAUI.ViewModels
 
                 if (!llmAvailable)
                 {
-                    IsConnected = false;
-                    StatusMessage = "LLM Service Offline";
+                    isConnected = false;
+                    statusMessage = "LLM Service Offline";
                     _logger?.LogWarning("LLM Service is not available");
                 }
                 else if (!voiceAvailable)
                 {
-                    StatusMessage = "Voice Services Limited";
-                    ShowVoiceToggle = false;
+                    statusMessage = "Voice Services Limited";
+                    showVoiceToggle = false;
                     _logger?.LogWarning("Voice services are not available");
                 }
                 else
                 {
-                    IsConnected = true;
-                    StatusMessage = "All Systems Online";
+                    isConnected = true;
+                    statusMessage = "All Systems Online";
                 }
             }
             catch (Exception ex)
             {
-                IsConnected = false;
-                StatusMessage = "Service Check Failed";
+                isConnected = false;
+                statusMessage = "Service Check Failed";
                 _logger?.LogError(ex, "Error checking service availability");
             }
         }
@@ -134,12 +151,12 @@ namespace JarvisAssistant.MAUI.ViewModels
         [RelayCommand]
         private async Task SendMessageAsync()
         {
-            if (string.IsNullOrWhiteSpace(CurrentMessage) || IsSending)
+            if (string.IsNullOrWhiteSpace(currentMessage) || isSending)
                 return;
 
-            var userMessage = CurrentMessage.Trim();
-            CurrentMessage = string.Empty;
-            IsSending = true;
+            var userMessage = currentMessage.Trim();
+            currentMessage = string.Empty;
+            isSending = true;
 
             try
             {
@@ -201,27 +218,27 @@ namespace JarvisAssistant.MAUI.ViewModels
             }
             finally
             {
-                IsSending = false;
+                isSending = false;
             }
         }
 
         [RelayCommand]
         private async Task ProcessVoiceCommandAsync()
         {
-            if (IsListening || !IsVoiceModeActive)
+            if (isListening || !isVoiceModeActive)
                 return;
 
             // Check if voice services are available
             if (_voiceModeManager == null || _voiceCommandProcessor == null)
             {
-                VoiceCommandFeedback = "Voice services unavailable.";
+                voiceCommandFeedback = "Voice services unavailable.";
                 await Task.Delay(2000);
-                VoiceCommandFeedback = string.Empty;
+                voiceCommandFeedback = string.Empty;
                 return;
             }
 
-            IsListening = true;
-            VoiceCommandFeedback = "Listening...";
+            isListening = true;
+            voiceCommandFeedback = "Listening...";
 
             try
             {
@@ -230,7 +247,7 @@ namespace JarvisAssistant.MAUI.ViewModels
                 
                 if (!string.IsNullOrEmpty(voiceResult))
                 {
-                    VoiceCommandFeedback = $"Processing: \"{voiceResult}\"";
+                    voiceCommandFeedback = $"Processing: \"{voiceResult}\"";
                     
                     // Process as voice command first
                     var voiceCommand = new VoiceCommand
@@ -254,27 +271,27 @@ namespace JarvisAssistant.MAUI.ViewModels
                     else
                     {
                         // Treat as regular chat message
-                        CurrentMessage = voiceResult;
+                        currentMessage = voiceResult;
                         await SendMessageAsync();
                     }
                 }
                 else
                 {
-                    VoiceCommandFeedback = "No speech detected.";
+                    voiceCommandFeedback = "No speech detected.";
                 }
             }
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "Error processing voice command");
-                VoiceCommandFeedback = "Voice recognition error.";
+                voiceCommandFeedback = "Voice recognition error.";
             }
             finally
             {
-                IsListening = false;
+                isListening = false;
                 
                 // Clear feedback after delay
                 await Task.Delay(2000);
-                VoiceCommandFeedback = string.Empty;
+                voiceCommandFeedback = string.Empty;
             }
         }
 
@@ -287,31 +304,31 @@ namespace JarvisAssistant.MAUI.ViewModels
             // Check if voice services are available
             if (_voiceModeManager == null)
             {
-                StatusMessage = "Voice services unavailable";
+                statusMessage = "Voice services unavailable";
                 await Task.Delay(2000);
-                StatusMessage = IsConnected ? "Ready" : "LLM Service Offline";
+                statusMessage = isConnected ? "Ready" : "LLM Service Offline";
                 return;
             }
 
-            IsVoiceModeActive = !IsVoiceModeActive;
+            isVoiceModeActive = !isVoiceModeActive;
 
             try
             {
-                if (IsVoiceModeActive)
+                if (isVoiceModeActive)
                 {
                     await _voiceModeManager.EnableVoiceModeAsync();
-                    StatusMessage = "Voice mode activated";
+                    statusMessage = "Voice mode activated";
                 }
                 else
                 {
                     await _voiceModeManager.DisableVoiceModeAsync();
-                    StatusMessage = "Voice mode deactivated";
+                    statusMessage = "Voice mode deactivated";
                 }
             }
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "Error toggling voice mode");
-                IsVoiceModeActive = !IsVoiceModeActive; // Revert on error
+                isVoiceModeActive = !isVoiceModeActive; // Revert on error
             }
         }
 
@@ -320,21 +337,21 @@ namespace JarvisAssistant.MAUI.ViewModels
         {
             try
             {
-                StatusMessage = "Refreshing...";
+                statusMessage = "Refreshing...";
                 
                 // Check service availability again
                 CheckServiceAvailability();
                 
                 await Task.Delay(1000);
                 
-                StatusMessage = IsConnected ? "Conversation refreshed" : "LLM Service Offline";
+                statusMessage = isConnected ? "Conversation refreshed" : "LLM Service Offline";
                 await Task.Delay(2000);
-                StatusMessage = IsConnected ? "Ready" : "LLM Service Offline";
+                statusMessage = isConnected ? "Ready" : "LLM Service Offline";
             }
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "Error refreshing conversation");
-                StatusMessage = "Refresh failed";
+                statusMessage = "Refresh failed";
             }
         }
 

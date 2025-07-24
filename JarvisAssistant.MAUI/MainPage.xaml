@@ -1,6 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:views="clr-namespace:JarvisAssistant.MAUI.Views"
              x:Class="JarvisAssistant.MAUI.MainPage"
              Title="JARVIS Assistant"
              Shell.NavBarIsVisible="False">
@@ -74,7 +75,8 @@
             </LinearGradientBrush>
         </Grid.Background>
 
-        <ScrollView>
+        <!-- Main Content -->
+        <ScrollView HorizontalOptions="Center">
             <VerticalStackLayout Padding="40,60" Spacing="40" HorizontalOptions="Center">
                 
                 <!-- Main Logo/Icon -->
@@ -170,5 +172,10 @@
                 </VerticalStackLayout>
             </VerticalStackLayout>
         </ScrollView>
+        
+        <!-- Status Panel Overlay -->
+        <views:StatusPanelView x:Name="StatusPanel"
+                               VerticalOptions="Fill"
+                               HorizontalOptions="Fill" />
     </Grid>
 </ContentPage>

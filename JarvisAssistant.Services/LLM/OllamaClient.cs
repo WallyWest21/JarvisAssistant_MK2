@@ -2,7 +2,9 @@ using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using JarvisAssistant.Core.Models;
+using JarvisAssistant.Services.Extensions;
 
 namespace JarvisAssistant.Services.LLM
 {
@@ -13,6 +15,7 @@ namespace JarvisAssistant.Services.LLM
     {
         private readonly HttpClient _httpClient;
         private readonly ILogger<OllamaClient> _logger;
+        private readonly IOptions<OllamaLLMOptions> _options;
         private readonly JsonSerializerOptions _jsonOptions;
 
         private static readonly Dictionary<QueryType, string> ModelMapping = new()
@@ -25,20 +28,26 @@ namespace JarvisAssistant.Services.LLM
             { QueryType.Error, "deepseek-coder" }
         };
 
-        public OllamaClient(HttpClient httpClient, ILogger<OllamaClient> logger)
+        public OllamaClient(HttpClient httpClient, ILogger<OllamaClient> logger, IOptions<OllamaLLMOptions>? options = null)
         {
             _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _options = options ?? Microsoft.Extensions.Options.Options.Create(new OllamaLLMOptions());
 
-            // Configure HttpClient with Ollama base URL
-            _httpClient.BaseAddress = new Uri("http://100.108.155.28:11434");
-            _httpClient.Timeout = TimeSpan.FromMinutes(5);
+            // Configure HttpClient with options
+            if (_httpClient.BaseAddress == null)
+            {
+                _httpClient.BaseAddress = new Uri(_options.Value.BaseUrl);
+                _httpClient.Timeout = _options.Value.Timeout;
+            }
 
             _jsonOptions = new JsonSerializerOptions
             {
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
                 WriteIndented = false
             };
+
+            _logger.LogInformation("OllamaClient initialized with base URL: {BaseUrl}", _httpClient.BaseAddress);
         }
 
         /// <summary>
@@ -50,56 +59,81 @@ namespace JarvisAssistant.Services.LLM
         /// <returns>The generated response.</returns>
         public async Task<string> GenerateAsync(string prompt, QueryType queryType = QueryType.General, CancellationToken cancellationToken = default)
         {
-            try
+            var retryCount = 0;
+            var maxRetries = _options.Value.MaxRetryAttempts;
+
+            while (retryCount <= maxRetries)
             {
-                var model = GetModelForQueryType(queryType);
-                var request = new
+                try
                 {
-                    model = model,
-                    prompt = prompt,
-                    stream = false,
-                    options = new
+                    var model = GetModelForQueryType(queryType, _options.Value);
+                    var request = new
                     {
-                        temperature = 0.7,
-                        top_p = 0.9,
-                        max_tokens = 2048
+                        model = model,
+                        prompt = prompt,
+                        stream = false,
+                        options = new
+                        {
+                            temperature = _options.Value.Temperature,
+                            top_p = _options.Value.TopP,
+                            max_tokens = _options.Value.MaxTokens
+                        }
+                    };
+
+                    var json = JsonSerializer.Serialize(request, _jsonOptions);
+                    var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                    _logger.LogInformation("Sending request to Ollama with model: {Model} (attempt {Attempt}/{MaxAttempts})", 
+                        model, retryCount + 1, maxRetries + 1);
+
+                    var response = await _httpClient.PostAsync("/api/generate", content, cancellationToken);
+                    
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
+                        
+                        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                        {
+                            _logger.LogError("Ollama API endpoint not found (404). Please check if Ollama is running and accessible at: {BaseUrl}", _httpClient.BaseAddress);
+                            throw new InvalidOperationException($"Ollama service not found at {_httpClient.BaseAddress}. Please ensure Ollama is running and accessible. Error: HTTP 404 - {errorContent}");
+                        }
+                        
+                        _logger.LogError("Ollama API error: {StatusCode} - {Content}", response.StatusCode, errorContent);
+                        throw new HttpRequestException($"Ollama API returned {response.StatusCode}: {errorContent}");
                     }
-                };
 
-                var json = JsonSerializer.Serialize(request, _jsonOptions);
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                    var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
+                    var ollamaResponse = JsonSerializer.Deserialize<OllamaResponse>(responseJson, _jsonOptions);
 
-                _logger.LogInformation("Sending request to Ollama with model: {Model}", model);
-
-                var response = await _httpClient.PostAsync("/api/generate", content, cancellationToken);
-                
-                if (!response.IsSuccessStatusCode)
-                {
-                    var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
-                    _logger.LogError("Ollama API error: {StatusCode} - {Content}", response.StatusCode, errorContent);
-                    throw new HttpRequestException($"Ollama API returned {response.StatusCode}: {errorContent}");
+                    _logger.LogInformation("Successfully received response from Ollama");
+                    return ollamaResponse?.Response ?? string.Empty;
                 }
+                catch (HttpRequestException ex) when (ex.Message.Contains("404") || ex.Message.Contains("connection") || ex.Message.Contains("refused"))
+                {
+                    if (retryCount < maxRetries && await TryAlternativeEndpoint(retryCount))
+                    {
+                        retryCount++;
+                        _logger.LogWarning("Retrying with alternative endpoint (attempt {Attempt}/{MaxAttempts})", retryCount + 1, maxRetries + 1);
+                        await Task.Delay(_options.Value.RetryDelay, cancellationToken);
+                        continue;
+                    }
 
-                var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
-                var ollamaResponse = JsonSerializer.Deserialize<OllamaResponse>(responseJson, _jsonOptions);
+                    _logger.LogError(ex, "Failed to connect to Ollama server after all retry attempts");
+                    throw new InvalidOperationException($"Unable to connect to Ollama server. Please ensure Ollama is running and accessible. Tried {retryCount + 1} attempts. Last error: {ex.Message}", ex);
+                }
+                catch (TaskCanceledException ex) when (ex.InnerException is TimeoutException)
+                {
+                    _logger.LogError(ex, "Ollama request timed out");
+                    throw new TimeoutException("The request to Ollama timed out. The model may be taking longer than expected to respond.", ex);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Unexpected error during Ollama generation");
+                    throw;
+                }
+            }
 
-                return ollamaResponse?.Response ?? string.Empty;
-            }
-            catch (HttpRequestException ex)
-            {
-                _logger.LogError(ex, "Failed to connect to Ollama server");
-                throw new InvalidOperationException("Unable to connect to Ollama server. Please ensure it's running and accessible.", ex);
-            }
-            catch (TaskCanceledException ex) when (ex.InnerException is TimeoutException)
-            {
-                _logger.LogError(ex, "Ollama request timed out");
-                throw new TimeoutException("The request to Ollama timed out. The model may be taking longer than expected to respond.", ex);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Unexpected error during Ollama generation");
-                throw;
-            }
+            throw new InvalidOperationException("Maximum retry attempts exceeded");
         }
 
         /// <summary>
@@ -111,7 +145,7 @@ namespace JarvisAssistant.Services.LLM
         /// <returns>An async enumerable of response chunks.</returns>
         public async IAsyncEnumerable<string> StreamGenerateAsync(string prompt, QueryType queryType = QueryType.General, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
-            var model = GetModelForQueryType(queryType);
+            var model = GetModelForQueryType(queryType, _options.Value);
             var requestData = new
             {
                 model = model,
@@ -119,9 +153,9 @@ namespace JarvisAssistant.Services.LLM
                 stream = true,
                 options = new
                 {
-                    temperature = 0.7,
-                    top_p = 0.9,
-                    max_tokens = 2048
+                    temperature = _options.Value.Temperature,
+                    top_p = _options.Value.TopP,
+                    max_tokens = _options.Value.MaxTokens
                 }
             };
 
@@ -150,8 +184,17 @@ namespace JarvisAssistant.Services.LLM
                 if (!response.IsSuccessStatusCode)
                 {
                     var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
-                    _logger.LogError("Ollama API error: {StatusCode} - {Content}", response.StatusCode, errorContent);
-                    streamException = new HttpRequestException($"Ollama API returned {response.StatusCode}: {errorContent}");
+                    
+                    if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                    {
+                        _logger.LogError("Ollama API endpoint not found (404) during streaming. Please check if Ollama is running at: {BaseUrl}", _httpClient.BaseAddress);
+                        streamException = new InvalidOperationException($"Ollama service not found at {_httpClient.BaseAddress}. Please ensure Ollama is running and accessible. Error: HTTP 404 - {errorContent}");
+                    }
+                    else
+                    {
+                        _logger.LogError("Ollama API error during streaming: {StatusCode} - {Content}", response.StatusCode, errorContent);
+                        streamException = new HttpRequestException($"Ollama API returned {response.StatusCode}: {errorContent}");
+                    }
                 }
                 else
                 {
@@ -182,7 +225,7 @@ namespace JarvisAssistant.Services.LLM
             catch (HttpRequestException ex)
             {
                 _logger.LogError(ex, "Failed to connect to Ollama server during streaming");
-                streamException = new InvalidOperationException("Unable to connect to Ollama server for streaming. Please ensure it's running and accessible.", ex);
+                streamException = new InvalidOperationException($"Unable to connect to Ollama server for streaming. Please ensure Ollama is running and accessible at {_httpClient.BaseAddress}. Error: {ex.Message}", ex);
             }
             catch (TaskCanceledException ex) when (ex.InnerException is TimeoutException)
             {
@@ -206,6 +249,26 @@ namespace JarvisAssistant.Services.LLM
             {
                 yield return chunk;
             }
+        }
+
+        /// <summary>
+        /// Tries to switch to an alternative endpoint if available.
+        /// </summary>
+        /// <param name="attemptNumber">The current attempt number.</param>
+        /// <returns>True if an alternative endpoint was set.</returns>
+        private async Task<bool> TryAlternativeEndpoint(int attemptNumber)
+        {
+            var alternatives = _options.Value.AlternativeEndpoints;
+            if (attemptNumber < alternatives.Count)
+            {
+                var alternativeUrl = alternatives[attemptNumber];
+                _logger.LogInformation("Trying alternative endpoint: {Endpoint}", alternativeUrl);
+                
+                _httpClient.BaseAddress = new Uri(alternativeUrl);
+                return true;
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -237,9 +300,15 @@ namespace JarvisAssistant.Services.LLM
         /// </summary>
         /// <param name="queryType">The type of query.</param>
         /// <returns>The model name to use.</returns>
-        private static string GetModelForQueryType(QueryType queryType)
+        private static string GetModelForQueryType(QueryType queryType, OllamaLLMOptions options)
         {
-            return ModelMapping.TryGetValue(queryType, out var model) ? model : ModelMapping[QueryType.General];
+            // Use configured models if available
+            return queryType switch
+            {
+                QueryType.Code => options.CodeModel,
+                QueryType.Error => options.CodeModel,
+                _ => options.DefaultModel
+            };
         }
 
         /// <summary>
@@ -255,7 +324,14 @@ namespace JarvisAssistant.Services.LLM
                 
                 if (!response.IsSuccessStatusCode)
                 {
-                    _logger.LogError("Failed to get Ollama models: {StatusCode}", response.StatusCode);
+                    if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                    {
+                        _logger.LogError("Ollama models endpoint not found (404). Service may not be running at: {BaseUrl}", _httpClient.BaseAddress);
+                    }
+                    else
+                    {
+                        _logger.LogError("Failed to get Ollama models: {StatusCode}", response.StatusCode);
+                    }
                     return new List<string>();
                 }
 
@@ -266,7 +342,7 @@ namespace JarvisAssistant.Services.LLM
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving Ollama models");
+                _logger.LogError(ex, "Error retrieving Ollama models from {BaseUrl}", _httpClient.BaseAddress);
                 return new List<string>();
             }
         }

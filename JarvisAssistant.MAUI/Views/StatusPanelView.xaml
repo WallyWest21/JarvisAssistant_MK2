@@ -1,0 +1,355 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:skia="clr-namespace:SkiaSharp.Views.Maui.Controls;assembly=SkiaSharp.Views.Maui.Controls"
+             xmlns:viewmodels="clr-namespace:JarvisAssistant.MAUI.ViewModels"
+             xmlns:models="clr-namespace:JarvisAssistant.Core.Models;assembly=JarvisAssistant.Core"
+             xmlns:converters="clr-namespace:JarvisAssistant.MAUI.Converters"
+             x:Class="JarvisAssistant.MAUI.Views.StatusPanelView"
+             x:DataType="viewmodels:StatusPanelViewModel">
+
+    <ContentView.Resources>
+        <ResourceDictionary>
+            <!-- Status Colors -->
+            <Color x:Key="OnlineColor">#4CAF50</Color>
+            <Color x:Key="DegradedColor">#FF9800</Color>
+            <Color x:Key="OfflineColor">#F44336</Color>
+            <Color x:Key="ErrorColor">#F44336</Color>
+            <Color x:Key="StartingColor">#2196F3</Color>
+            <Color x:Key="StoppingColor">#9C27B0</Color>
+            
+            <!-- Animation Durations -->
+            <x:Double x:Key="PulseAnimationDuration">1000</x:Double>
+            <x:Double x:Key="StatusChangeAnimationDuration">300</x:Double>
+            
+            <!-- Converters -->
+            <viewmodels:ServiceStateToColorConverter x:Key="StateToColorConverter" />
+            <viewmodels:ServiceStateToIconConverter x:Key="StateToIconConverter" />
+            <viewmodels:ResponseTimeToTextConverter x:Key="ResponseTimeToTextConverter" />
+            <viewmodels:BoolToOpacityConverter x:Key="BoolToOpacityConverter" />
+            <converters:InvertedBoolConverter x:Key="InvertedBoolConverter" />
+            
+            <!-- Status Item Template -->
+            <DataTemplate x:Key="ServiceStatusTemplate" x:DataType="models:ServiceStatus">
+                <Grid Margin="0,2" 
+                      HeightRequest="40"
+                      BackgroundColor="Transparent">
+                    
+                    <!-- Tap Gesture for Details -->
+                    <Grid.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type viewmodels:StatusPanelViewModel}}, Path=ShowServiceDetailsCommand}"
+                                              CommandParameter="{Binding .}" />
+                    </Grid.GestureRecognizers>
+                    
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="24" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    
+                    <!-- Status Indicator with Animation -->
+                    <Grid Grid.Column="0" 
+                          WidthRequest="16" 
+                          HeightRequest="16"
+                          HorizontalOptions="Center"
+                          VerticalOptions="Center">
+                        
+                        <!-- Pulsing Background Circle for Active Requests -->
+                        <Ellipse x:Name="PulseCircle"
+                                 Fill="{Binding State, Converter={StaticResource StateToColorConverter}}"
+                                 Opacity="0.3"
+                                 WidthRequest="20"
+                                 HeightRequest="20"
+                                 IsVisible="{Binding IsChecking}" />
+                        
+                        <!-- Main Status Circle -->
+                        <Ellipse x:Name="StatusCircle"
+                                 Fill="{Binding State, Converter={StaticResource StateToColorConverter}}"
+                                 WidthRequest="12"
+                                 HeightRequest="12" />
+                        
+                        <!-- Error Icon Overlay -->
+                        <Label Text="{Binding State, Converter={StaticResource StateToIconConverter}}"
+                               FontFamily="MaterialIcons"
+                               FontSize="10"
+                               TextColor="White"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center"
+                               IsVisible="{Binding IsError}" />
+                    </Grid>
+                    
+                    <!-- Service Name -->
+                    <Label Grid.Column="1"
+                           Text="{Binding ServiceName}"
+                           FontSize="14"
+                           VerticalOptions="Center"
+                           Margin="8,0"
+                           TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray100}}" />
+                    
+                    <!-- Status Text and Response Time -->
+                    <StackLayout Grid.Column="2" 
+                                 Orientation="Horizontal"
+                                 VerticalOptions="Center"
+                                 Spacing="8">
+                        
+                        <!-- Status Text -->
+                        <Label Text="{Binding State}"
+                               FontSize="12"
+                               VerticalOptions="Center"
+                               TextColor="{Binding State, Converter={StaticResource StateToColorConverter}}" />
+                        
+                        <!-- Response Time -->
+                        <Label Text="{Binding Metrics, Converter={StaticResource ResponseTimeToTextConverter}}"
+                               FontSize="11"
+                               VerticalOptions="Center"
+                               TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray400}}"
+                               IsVisible="{Binding IsHealthy}" />
+                        
+                        <!-- Error Code -->
+                        <Label Text="{Binding ErrorCode}"
+                               FontSize="11"
+                               VerticalOptions="Center"
+                               TextColor="{StaticResource ErrorColor}"
+                               IsVisible="{Binding HasError}" />
+                    </StackLayout>
+                </Grid>
+            </DataTemplate>
+            
+            <!-- Panel Styles -->
+            <Style x:Key="DesktopPanelStyle" TargetType="Frame">
+                <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource Gray50}, Dark={StaticResource Gray950}}" />
+                <Setter Property="BorderColor" Value="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray700}}" />
+                <Setter Property="CornerRadius" Value="8" />
+                <Setter Property="Padding" Value="12" />
+                <Setter Property="Margin" Value="8" />
+                <Setter Property="HasShadow" Value="True" />
+                <Setter Property="WidthRequest" Value="280" />
+            </Style>
+            
+            <Style x:Key="MobilePanelStyle" TargetType="Frame">
+                <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource Gray50}, Dark={StaticResource Gray950}}" />
+                <Setter Property="BorderColor" Value="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray700}}" />
+                <Setter Property="CornerRadius" Value="12" />
+                <Setter Property="Padding" Value="16" />
+                <Setter Property="HasShadow" Value="True" />
+            </Style>
+            
+            <Style x:Key="TvOverlayStyle" TargetType="Frame">
+                <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#E0FFFFFF, Dark=#E0000000}" />
+                <Setter Property="BorderColor" Value="Transparent" />
+                <Setter Property="CornerRadius" Value="8" />
+                <Setter Property="Padding" Value="8" />
+                <Setter Property="Margin" Value="16" />
+                <Setter Property="WidthRequest" Value="200" />
+                <Setter Property="HorizontalOptions" Value="End" />
+                <Setter Property="VerticalOptions" Value="Start" />
+            </Style>
+        </ResourceDictionary>
+    </ContentView.Resources>
+
+    <!-- Main Container with Platform-Specific Layouts -->
+    <Grid>
+        <!-- Desktop Layout: Always Visible Sidebar -->
+        <Frame x:Name="DesktopPanel"
+               Style="{StaticResource DesktopPanelStyle}"
+               IsVisible="{OnPlatform Default=False, WinUI=True, MacCatalyst=True}"
+               VerticalOptions="FillAndExpand"
+               HorizontalOptions="Start">
+            
+            <StackLayout Spacing="8">
+                <!-- Header -->
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    
+                    <Label Grid.Column="0"
+                           Text="Service Status"
+                           FontSize="16"
+                           FontAttributes="Bold"
+                           VerticalOptions="Center"
+                           TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray100}}" />
+                    
+                    <!-- Refresh Button -->
+                    <Button Grid.Column="1"
+                            Text="⟳"
+                            FontSize="16"
+                            WidthRequest="32"
+                            HeightRequest="32"
+                            BackgroundColor="Transparent"
+                            TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray400}}"
+                            Command="{Binding RefreshStatusCommand}" />
+                </Grid>
+                
+                <!-- Service List -->
+                <CollectionView ItemsSource="{Binding ServiceStatuses}"
+                                ItemTemplate="{StaticResource ServiceStatusTemplate}"
+                                HeightRequest="300"
+                                VerticalScrollBarVisibility="Default" />
+                
+                <!-- Last Updated -->
+                <Label Text="{Binding LastUpdated, StringFormat='Updated: {0:HH:mm:ss}'}"
+                       FontSize="10"
+                       HorizontalOptions="Center"
+                       TextColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray500}}" />
+            </StackLayout>
+        </Frame>
+        
+        <!-- Mobile Layout: Collapsible Panel -->
+        <Grid x:Name="MobileContainer"
+              IsVisible="{OnPlatform Default=True, WinUI=False, MacCatalyst=False}"
+              VerticalOptions="Fill" >
+            
+            <!-- Backdrop for Expanded Panel -->
+            <BoxView BackgroundColor="#80000000"
+                     IsVisible="{Binding IsExpanded}"
+                     Opacity="{Binding IsExpanded, Converter={StaticResource BoolToOpacityConverter}}">
+                <BoxView.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding ToggleExpandedCommand}" />
+                </BoxView.GestureRecognizers>
+            </BoxView>
+            
+            <!-- Mobile Status Indicator (Always Visible) -->
+            <Grid VerticalOptions="Start"
+                  HorizontalOptions="Fill"
+                  HeightRequest="40"
+                  BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray900}}"
+                  IsVisible="{Binding IsExpanded, Converter={StaticResource InvertedBoolConverter}}">
+                
+                <Grid.GestureRecognizers>
+                    <SwipeGestureRecognizer Direction="Down" Command="{Binding ToggleExpandedCommand}" />
+                    <TapGestureRecognizer Command="{Binding ToggleExpandedCommand}" />
+                </Grid.GestureRecognizers>
+                
+                <StackLayout Orientation="Horizontal"
+                             HorizontalOptions="Center"
+                             VerticalOptions="Center"
+                             Spacing="8">
+                    
+                    <!-- Overall Status Indicator -->
+                    <Ellipse Fill="{Binding OverallStatus, Converter={StaticResource StateToColorConverter}}"
+                             WidthRequest="12"
+                             HeightRequest="12" />
+                    
+                    <Label Text="{Binding StatusSummary}"
+                           FontSize="14"
+                           VerticalOptions="Center"
+                           TextColor="{AppThemeBinding Light={StaticResource Gray700}, Dark={StaticResource Gray300}}" />
+                    
+                    <!-- Expand Indicator -->
+                    <Label Text="⌄"
+                           FontSize="16"
+                           VerticalOptions="Center"
+                           TextColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray500}}" />
+                </StackLayout>
+            </Grid>
+            
+            <!-- Expanded Panel -->
+            <Frame x:Name="MobileExpandedPanel"
+                   Style="{StaticResource MobilePanelStyle}"
+                   VerticalOptions="Start"
+                   IsVisible="{Binding IsExpanded}">
+                
+                <StackLayout Spacing="12">
+                    <!-- Header with Close Button -->
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        
+                        <Label Grid.Column="0"
+                               Text="Service Status"
+                               FontSize="18"
+                               FontAttributes="Bold"
+                               VerticalOptions="Center"
+                               TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray100}}" />
+                        
+                        <Button Grid.Column="1"
+                                Text="✕"
+                                FontSize="16"
+                                WidthRequest="32"
+                                HeightRequest="32"
+                                BackgroundColor="Transparent"
+                                TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray400}}"
+                                Command="{Binding ToggleExpandedCommand}" />
+                    </Grid>
+                    
+                    <!-- Service List -->
+                    <CollectionView ItemsSource="{Binding ServiceStatuses}"
+                                    ItemTemplate="{StaticResource ServiceStatusTemplate}"
+                                    HeightRequest="280"
+                                    VerticalScrollBarVisibility="Default" />
+                    
+                    <!-- Actions -->
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        
+                        <Button Grid.Column="0"
+                                Text="Refresh All"
+                                Command="{Binding RefreshStatusCommand}"
+                                Margin="0,0,4,0" />
+                        
+                        <Button Grid.Column="1"
+                                Text="Settings"
+                                Command="{Binding OpenSettingsCommand}"
+                                Margin="4,0,0,0" />
+                    </Grid>
+                </StackLayout>
+            </Frame>
+        </Grid>
+        
+        <!-- TV Layout: Minimal Corner Overlay -->
+        <Frame x:Name="TvOverlay"
+               Style="{StaticResource TvOverlayStyle}"
+               IsVisible="{OnPlatform Default=False, Tizen=True}">
+            
+            <StackLayout Spacing="4">
+                <!-- Compact Status List -->
+                <CollectionView ItemsSource="{Binding ServiceStatuses}"
+                                HeightRequest="120">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="models:ServiceStatus">
+                            <Grid Margin="0,1" HeightRequest="20">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="12" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                
+                                <Ellipse Grid.Column="0"
+                                         Fill="{Binding State, Converter={StaticResource StateToColorConverter}}"
+                                         WidthRequest="8"
+                                         HeightRequest="8"
+                                         VerticalOptions="Center" />
+                                
+                                <Label Grid.Column="1"
+                                       Text="{Binding ServiceName}"
+                                       FontSize="10"
+                                       VerticalOptions="Center"
+                                       Margin="4,0"
+                                       TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray100}}" />
+                                
+                                <Label Grid.Column="2"
+                                       Text="{Binding Metrics, Converter={StaticResource ResponseTimeToTextConverter}}"
+                                       FontSize="9"
+                                       VerticalOptions="Center"
+                                       TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray400}}" />
+                            </Grid>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+                
+                <!-- Last Updated (Compact) -->
+                <Label Text="{Binding LastUpdated, StringFormat='{0:HH:mm}'}"
+                       FontSize="8"
+                       HorizontalOptions="Center"
+                       TextColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray500}}" />
+            </StackLayout>
+        </Frame>
+    </Grid>
+</ContentView>

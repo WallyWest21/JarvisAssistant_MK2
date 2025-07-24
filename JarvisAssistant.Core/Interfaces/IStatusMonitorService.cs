@@ -40,5 +40,24 @@ namespace JarvisAssistant.Core.Interfaces
         /// <param name="serviceName">The name of the service to stop monitoring.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
         Task StopMonitoringAsync(string serviceName);
+
+        /// <summary>
+        /// Starts monitoring all registered services.
+        /// </summary>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        Task StartMonitoringAllAsync();
+
+        /// <summary>
+        /// Stops monitoring all services.
+        /// </summary>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        Task StopMonitoringAllAsync();
+
+        /// <summary>
+        /// Resets the failure count and backoff state for a specific service, forcing an immediate health check.
+        /// </summary>
+        /// <param name="serviceName">The name of the service to reset failures for.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        Task ResetServiceFailuresAsync(string serviceName);
     }
 }

@@ -101,6 +101,26 @@ namespace JarvisAssistant.Core.Models
         public bool IsHealthy => State == ServiceState.Online || State == ServiceState.Degraded;
 
         /// <summary>
+        /// Gets a value indicating whether the service is in an error state.
+        /// </summary>
+        public bool IsError => State == ServiceState.Error;
+
+        /// <summary>
+        /// Gets a value indicating whether the service has an error.
+        /// </summary>
+        public bool HasError => !string.IsNullOrEmpty(ErrorMessage);
+
+        /// <summary>
+        /// Gets a value indicating whether the service is currently being checked.
+        /// </summary>
+        public bool IsChecking => State == ServiceState.Starting;
+
+        /// <summary>
+        /// Gets the error code from metrics if available.
+        /// </summary>
+        public string? ErrorCode => Metrics?.TryGetValue("error_code", out var code) == true ? code?.ToString() : null;
+
+        /// <summary>
         /// Updates the heartbeat timestamp to the current time.
         /// </summary>
         public void UpdateHeartbeat()

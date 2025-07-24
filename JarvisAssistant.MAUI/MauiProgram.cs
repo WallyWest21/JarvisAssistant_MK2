@@ -74,9 +74,13 @@ public static class MauiProgram
 			services.AddSingleton<IPlatformService, PlatformService>();
 			services.AddSingleton<IThemeManager, MauiThemeManager>();
 			
+			// Register MAUI abstraction services using Core interfaces
+			services.AddSingleton<JarvisAssistant.Core.Interfaces.IDialogService, MauiDialogService>();
+			services.AddSingleton<JarvisAssistant.Core.Interfaces.INavigationService, MauiNavigationService>();
+			
 			// Register existing services from JarvisAssistant.Services
 			services.AddSingleton<JarvisAssistant.Core.Interfaces.IErrorHandlingService, JarvisAssistant.Services.ErrorHandlingService>();
-			
+
 			// Register voice mode services with error handling
 			try
 			{
@@ -90,13 +94,40 @@ public static class MauiProgram
 				// Voice services are optional
 			}
 			
-			// Register LLM Service with Ollama integration
+			// Register LLM Service with automatic endpoint detection
 			try
 			{
-				System.Diagnostics.Debug.WriteLine("Configuring Ollama LLM Service...");
+				System.Diagnostics.Debug.WriteLine("Configuring Ollama LLM Service with automatic endpoint detection...");
 				
-				// Add Ollama LLM Service (will fallback to local service if Ollama is not available)
-				services.AddOllamaLLMService("http://localhost:11434");
+				// Add Ollama LLM Service with automatic fallback
+				services.AddOllamaLLMService(); // Will auto-detect best endpoint
+				
+				// Configure with additional options
+				services.ConfigureOllamaLLMService(options =>
+				{
+					// Override defaults if needed
+					options.Timeout = TimeSpan.FromSeconds(30);
+					options.MaxRetryAttempts = 3;
+					
+					// Platform-specific alternative endpoints
+#if ANDROID
+					options.AlternativeEndpoints = new List<string>
+					{
+						"http://10.0.2.2:11434",           // Android emulator host mapping
+						"http://100.108.155.28:11434",     // Direct IP (might work on real device)
+						"http://192.168.1.100:11434",      // Common local network
+						"http://localhost:11434"           // Fallback
+					};
+#else
+					options.AlternativeEndpoints = new List<string>
+					{
+						"http://localhost:11434",
+						"http://127.0.0.1:11434",
+						"http://100.108.155.28:11434", // Your original endpoint
+						"http://host.docker.internal:11434"
+					};
+#endif
+				});
 				
 				System.Diagnostics.Debug.WriteLine("Ollama LLM Service configured successfully");
 			}
@@ -116,6 +147,46 @@ public static class MauiProgram
 			services.AddTransient<ChatPage>();
 			services.AddTransient<ChatViewModel>();
 			services.AddTransient<VoiceDemoPage>();
+
+			// Register status monitoring services with synchronized endpoints
+			services.AddStatusMonitoring(options =>
+			{
+				options.MonitoringIntervalSeconds = 5;
+				options.HealthCheckTimeoutSeconds = 10;
+				options.AutoStartMonitoring = true;
+				options.SignalRHubUrl = "http://localhost:5003/statusHub"; // Configure as needed
+				
+				// Configure service endpoints to match the detection logic
+				var ollamaEndpoint = GetPlatformSpecificOllamaEndpoint();
+				
+				options.ServiceEndpoints["llm-engine"] = new ServiceEndpointConfig
+				{
+					Name = "llm-engine",
+					DisplayName = "LLM Engine (Ollama)",
+					HealthEndpoint = $"{ollamaEndpoint}/api/tags", // Use the platform-specific endpoint
+					Enabled = true
+				};
+				
+				options.ServiceEndpoints["vision-api"] = new ServiceEndpointConfig
+				{
+					Name = "vision-api",
+					DisplayName = "Vision API",
+					HealthEndpoint = "http://localhost:5000/health",
+					Enabled = true
+				};
+				
+				options.ServiceEndpoints["voice-service"] = new ServiceEndpointConfig
+				{
+					Name = "voice-service",
+					DisplayName = "Voice Service",
+					HealthEndpoint = "http://localhost:5001/health",
+					Enabled = true
+				};
+			});
+
+			// Register status panel view and view model
+			services.AddTransient<StatusPanelView>();
+			services.AddTransient<StatusPanelViewModel>();
 
 			// Register platform-specific services
 			RegisterPlatformServices(services);
@@ -148,6 +219,21 @@ public static class MauiProgram
 #elif MACCATALYST
 		// macOS-specific services
 		System.Diagnostics.Debug.WriteLine("Registering macOS-specific services");
+#endif
+	}
+
+	/// <summary>
+	/// Gets the platform-specific Ollama endpoint URL.
+	/// </summary>
+	/// <returns>The appropriate Ollama endpoint for the current platform.</returns>
+	private static string GetPlatformSpecificOllamaEndpoint()
+	{
+#if ANDROID
+		// Android emulator maps host machine's localhost to 10.0.2.2
+		return "http://10.0.2.2:11434";
+#else
+		// Use the working endpoint for other platforms
+		return "http://100.108.155.28:11434";
 #endif
 	}
 }

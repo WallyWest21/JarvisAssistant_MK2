@@ -229,6 +229,31 @@ namespace JarvisAssistant.UnitTests.Integration
         }
     }
 
+    public class StubVoiceService : IVoiceService
+    {
+        public Task<byte[]> GenerateSpeechAsync(string text, string? voiceId = null, CancellationToken cancellationToken = default)
+        {
+            // Return dummy audio data for testing
+            var dummyAudio = new byte[1024];
+            Random.Shared.NextBytes(dummyAudio);
+            return Task.FromResult(dummyAudio);
+        }
+
+        public async IAsyncEnumerable<byte[]> StreamSpeechAsync(string text, string? voiceId = null, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            // Return dummy streaming audio data for testing
+            var dummyChunk = new byte[256];
+            Random.Shared.NextBytes(dummyChunk);
+            yield return dummyChunk;
+        }
+
+        public Task<string> RecognizeSpeechAsync(byte[] audioData, string? language = null, CancellationToken cancellationToken = default)
+        {
+            // Return dummy recognized text for testing
+            return Task.FromResult("Test recognized speech text");
+        }
+    }
+
     public class TestVoiceModeManager : IVoiceModeManager
     {
         private bool _isActive = false;
@@ -392,6 +417,21 @@ namespace JarvisAssistant.UnitTests.Integration
         }
 
         public Task StopMonitoringAsync(string serviceName)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task StartMonitoringAllAsync()
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task StopMonitoringAllAsync()
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task ResetServiceFailuresAsync(string serviceName)
         {
             return Task.CompletedTask;
         }

@@ -18,6 +18,10 @@ public partial class App : Application
 		try
 		{
 			InitializeComponent();
+			
+			// Set up global exception handling for better debugging
+			SetupGlobalExceptionHandling();
+			
 			MainPage = new AppShell();
 		}
 		catch (Exception ex)
@@ -44,6 +48,52 @@ public partial class App : Application
 				// If even this fails, re-throw the original exception
 				throw ex;
 			}
+		}
+	}
+
+	/// <summary>
+	/// Sets up global exception handling for better debugging experience.
+	/// </summary>
+	private void SetupGlobalExceptionHandling()
+	{
+		try
+		{
+			// Handle unhandled exceptions on the main thread
+			AppDomain.CurrentDomain.UnhandledException += (sender, e) =>
+			{
+				var exception = e.ExceptionObject as Exception;
+				System.Diagnostics.Debug.WriteLine($"Unhandled exception: {exception}");
+				ErrorLogger.LogError(exception ?? new Exception("Unknown unhandled exception"));
+				
+				// Break into debugger if attached
+				if (System.Diagnostics.Debugger.IsAttached)
+				{
+					System.Diagnostics.Debugger.Break();
+				}
+			};
+
+			// Handle unhandled exceptions on background threads
+			TaskScheduler.UnobservedTaskException += (sender, e) =>
+			{
+				System.Diagnostics.Debug.WriteLine($"Unobserved task exception: {e.Exception}");
+				ErrorLogger.LogError(e.Exception);
+				e.SetObserved(); // Prevent app termination
+				
+				// Break into debugger if attached
+				if (System.Diagnostics.Debugger.IsAttached)
+				{
+					System.Diagnostics.Debugger.Break();
+				}
+			};
+
+#if DEBUG
+			// Additional debug-only exception handling
+			System.Diagnostics.Debug.WriteLine("Global exception handling configured for debugging");
+#endif
+		}
+		catch (Exception ex)
+		{
+			System.Diagnostics.Debug.WriteLine($"Error setting up global exception handling: {ex}");
 		}
 	}
 

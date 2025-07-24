@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using JarvisAssistant.Core.Interfaces;
 using JarvisAssistant.Services.LLM;
 using JarvisAssistant.Services.Hubs;
+using System.Net.NetworkInformation;
 
 namespace JarvisAssistant.Services.Extensions
 {
@@ -12,18 +13,25 @@ namespace JarvisAssistant.Services.Extensions
     public static class LLMServiceExtensions
     {
         /// <summary>
-        /// Adds the Ollama LLM service and related components to the service collection.
+        /// Adds the Ollama LLM service with automatic endpoint detection.
         /// </summary>
         /// <param name="services">The service collection.</param>
-        /// <param name="ollamaBaseUrl">The base URL for the Ollama server. Defaults to http://100.108.155.28:11434</param>
+        /// <param name="ollamaBaseUrl">Override URL. If null, will attempt auto-detection.</param>
         /// <returns>The service collection for chaining.</returns>
         public static IServiceCollection AddOllamaLLMService(this IServiceCollection services, string? ollamaBaseUrl = null)
         {
-            // Register HttpClient for OllamaClient
-            services.AddHttpClient<OllamaClient>(client =>
+            // Register configuration options
+            services.Configure<OllamaLLMOptions>(options =>
             {
-                client.BaseAddress = new Uri(ollamaBaseUrl ?? "http://100.108.155.28:11434");
-                client.Timeout = TimeSpan.FromMinutes(5);
+                options.BaseUrl = ollamaBaseUrl ?? DetectOllamaEndpoint();
+            });
+
+            // Register HttpClient for OllamaClient with configuration
+            services.AddHttpClient<OllamaClient>((serviceProvider, client) =>
+            {
+                var options = Microsoft.Extensions.Options.Options.Create(new OllamaLLMOptions { BaseUrl = ollamaBaseUrl ?? DetectOllamaEndpoint() });
+                client.BaseAddress = new Uri(options.Value.BaseUrl);
+                client.Timeout = options.Value.Timeout;
             });
 
             // Register OllamaClient with interface
@@ -34,11 +42,25 @@ namespace JarvisAssistant.Services.Extensions
             services.AddSingleton<IPersonalityService, PersonalityService>();
             services.AddSingleton<PersonalityService>();
 
-            // Register the main LLM service
-            services.AddScoped<ILLMService, OllamaLLMService>();
+            // Register the main LLM service with fallback
+            services.AddScoped<ILLMService>(serviceProvider =>
+            {
+                var logger = serviceProvider.GetService<ILogger<OllamaLLMService>>();
+                try
+                {
+                    var ollamaClient = serviceProvider.GetRequiredService<IOllamaClient>();
+                    var personalityService = serviceProvider.GetRequiredService<IPersonalityService>();
+                    return new OllamaLLMService(ollamaClient, personalityService, logger!);
+                }
+                catch (Exception ex)
+                {
+                    logger?.LogWarning(ex, "Failed to initialize OllamaLLMService, falling back to FallbackLLMService");
+                    var fallbackLogger = serviceProvider.GetService<ILogger<FallbackLLMService>>();
+                    return new FallbackLLMService(fallbackLogger);
+                }
+            });
 
-            // Register streaming service (removed SignalR server dependency for MAUI compatibility)
-            // Note: SignalR client connection should be managed in the consuming application
+            // Register streaming service
             services.AddSingleton<StreamingResponseService>();
 
             return services;
@@ -55,6 +77,71 @@ namespace JarvisAssistant.Services.Extensions
             services.Configure(configureOptions);
             return services;
         }
+
+        /// <summary>
+        /// Attempts to detect the appropriate Ollama endpoint.
+        /// </summary>
+        /// <returns>The detected or default Ollama endpoint URL.</returns>
+        private static string DetectOllamaEndpoint()
+        {
+            // List of potential Ollama endpoints to try
+            var endpoints = new List<string>();
+
+#if ANDROID
+            // Android emulator specific endpoints
+            endpoints.AddRange(new[]
+            {
+                "http://10.0.2.2:11434",           // Android emulator host mapping
+                "http://100.108.155.28:11434",     // Direct IP (might work on device)
+                "http://192.168.1.100:11434",      // Common local network range
+                "http://192.168.0.100:11434"       // Alternative local network range
+            });
+#else
+            // Standard endpoints for other platforms
+            endpoints.AddRange(new[]
+            {
+                "http://localhost:11434",           // Local development
+                "http://127.0.0.1:11434",          // Local loopback
+                "http://100.108.155.28:11434",     // Original configured endpoint
+                "http://host.docker.internal:11434" // Docker development
+            });
+#endif
+
+            foreach (var endpoint in endpoints)
+            {
+                if (IsEndpointReachable(endpoint))
+                {
+                    return endpoint;
+                }
+            }
+
+            // Platform-specific defaults
+#if ANDROID
+            return "http://10.0.2.2:11434"; // Default for Android emulator
+#else
+            return "http://localhost:11434"; // Default for other platforms
+#endif
+        }
+
+        /// <summary>
+        /// Checks if an endpoint is reachable by attempting a quick connection test.
+        /// </summary>
+        /// <param name="endpoint">The endpoint URL to test.</param>
+        /// <returns>True if the endpoint appears to be reachable.</returns>
+        private static bool IsEndpointReachable(string endpoint)
+        {
+            try
+            {
+                var uri = new Uri(endpoint);
+                using var ping = new Ping();
+                var reply = ping.Send(uri.Host, 1000); // 1 second timeout
+                return reply?.Status == IPStatus.Success;
+            }
+            catch
+            {
+                return false;
+            }
+        }
     }
 
     /// <summary>
@@ -65,7 +152,7 @@ namespace JarvisAssistant.Services.Extensions
         /// <summary>
         /// Gets or sets the base URL for the Ollama server.
         /// </summary>
-        public string BaseUrl { get; set; } = "http://100.108.155.28:11434";
+        public string BaseUrl { get; set; } = "http://localhost:11434";
 
         /// <summary>
         /// Gets or sets the request timeout duration.
@@ -111,5 +198,15 @@ namespace JarvisAssistant.Services.Extensions
         /// Gets or sets the delay between retry attempts.
         /// </summary>
         public TimeSpan RetryDelay { get; set; } = TimeSpan.FromSeconds(2);
+
+        /// <summary>
+        /// Gets or sets alternative endpoints to try if the primary fails.
+        /// </summary>
+        public List<string> AlternativeEndpoints { get; set; } = new()
+        {
+            "http://localhost:11434",
+            "http://127.0.0.1:11434",
+            "http://host.docker.internal:11434"
+        };
     }
 }

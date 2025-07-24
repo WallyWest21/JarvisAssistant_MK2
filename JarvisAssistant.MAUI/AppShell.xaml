@@ -30,16 +30,7 @@
         ContentTemplate="{DataTemplate local:MainPage}"
         Route="MainPage" />
 
-    <!-- Chat Page -->
-    <ShellContent
-        Title="Chat"
-        ContentTemplate="{DataTemplate views:ChatPage}"
-        Route="ChatPage" />
-
-    <!-- Voice Demo Page -->
-    <ShellContent
-        Title="Voice Demo"
-        ContentTemplate="{DataTemplate views:VoiceDemoPage}"
-        Route="VoiceDemoPage" />
+    <!-- Note: ChatPage and VoiceDemoPage are registered via Routing.RegisterRoute in AppShell.xaml.cs -->
+    <!-- This prevents duplicate route registration issues -->
 
 </Shell>

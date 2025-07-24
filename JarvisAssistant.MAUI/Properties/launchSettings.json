@@ -2,7 +2,16 @@
   "profiles": {
     "Windows Machine": {
       "commandName": "MsixPackage",
-      "nativeDebugging": false
+      "nativeDebugging": false,
+      "sqlDebugging": false,
+      "hotReloadEnabled": true,
+      "hotReloadProfile": "default"
+    },
+    "Windows Machine (Native Debugging)": {
+      "commandName": "MsixPackage",
+      "nativeDebugging": true,
+      "sqlDebugging": false,
+      "hotReloadEnabled": false
     }
   }
 }
