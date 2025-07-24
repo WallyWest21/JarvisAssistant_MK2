@@ -2,7 +2,10 @@
 using Microsoft.Extensions.Logging;
 using JarvisAssistant.Core.Interfaces;
 using JarvisAssistant.MAUI.Services;
+using JarvisAssistant.MAUI.Views;
+using JarvisAssistant.MAUI.ViewModels;
 using JarvisAssistant.Services;
+using JarvisAssistant.Services.Extensions;
 using SkiaSharp.Views.Maui.Controls.Hosting;
 using System;
 using System.IO;
@@ -74,15 +77,45 @@ public static class MauiProgram
 			// Register existing services from JarvisAssistant.Services
 			services.AddSingleton<JarvisAssistant.Core.Interfaces.IErrorHandlingService, JarvisAssistant.Services.ErrorHandlingService>();
 			
-			// Register voice mode services
-			services.AddSingleton<IVoiceModeManager, VoiceModeManager>();
-			services.AddSingleton<IVoiceCommandProcessor, VoiceCommandProcessor>();
-			services.AddSingleton<IVoiceService, StubVoiceService>();
+			// Register voice mode services with error handling
+			try
+			{
+				services.AddSingleton<IVoiceModeManager, VoiceModeManager>();
+				services.AddSingleton<IVoiceCommandProcessor, VoiceCommandProcessor>();
+				services.AddSingleton<IVoiceService, StubVoiceService>();
+			}
+			catch (Exception ex)
+			{
+				System.Diagnostics.Debug.WriteLine($"Warning: Voice services not available: {ex.Message}");
+				// Voice services are optional
+			}
 			
-			// TODO: Register remaining services when implemented
-			// services.AddSingleton<ILLMService, LLMService>();
-			// services.AddSingleton<IVoiceService, VoiceService>();
-			// services.AddSingleton<IStatusMonitorService, StatusMonitorService>();
+			// Register LLM Service with Ollama integration
+			try
+			{
+				System.Diagnostics.Debug.WriteLine("Configuring Ollama LLM Service...");
+				
+				// Add Ollama LLM Service (will fallback to local service if Ollama is not available)
+				services.AddOllamaLLMService("http://localhost:11434");
+				
+				System.Diagnostics.Debug.WriteLine("Ollama LLM Service configured successfully");
+			}
+			catch (Exception ex)
+			{
+				System.Diagnostics.Debug.WriteLine($"Error configuring Ollama service, using fallback: {ex.Message}");
+				
+				// Fallback to basic LLM service if Ollama is not available
+				services.AddSingleton<ILLMService>(serviceProvider =>
+				{
+					var fallbackLogger = serviceProvider.GetService<ILogger<FallbackLLMService>>();
+					return new FallbackLLMService(fallbackLogger);
+				});
+			}
+			
+			// Register Pages and ViewModels (always required)
+			services.AddTransient<ChatPage>();
+			services.AddTransient<ChatViewModel>();
+			services.AddTransient<VoiceDemoPage>();
 
 			// Register platform-specific services
 			RegisterPlatformServices(services);
@@ -90,7 +123,7 @@ public static class MauiProgram
 		catch (Exception ex)
 		{
 			System.Diagnostics.Debug.WriteLine($"Error configuring services: {ex}");
-			throw;
+			// Don't re-throw - allow app to start with limited functionality
 		}
 	}
 

@@ -39,7 +39,7 @@
 
 	<!-- Android runtime identifiers instead of AndroidSupportedAbis -->
 	<PropertyGroup Condition="$(TargetFramework.Contains('-android'))">
-		<RuntimeIdentifiers>android-x86;android-x64</RuntimeIdentifiers>
+		<RuntimeIdentifiers>android-arm;android-arm64;android-x86;android-x64</RuntimeIdentifiers>
 	</PropertyGroup>
 
 	<!-- Android-specific properties to prevent crashes -->
@@ -95,6 +95,15 @@
 	  <MauiXaml Update="Views\VoiceDemoPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
+	  <MauiXaml Update="Views\ChatPage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Compile Update="Views\ChatPage.xaml.cs">
+	    <DependentUpon>ChatPage.xaml</DependentUpon>
+	  </Compile>
 	</ItemGroup>
 
 </Project>

@@ -12,6 +12,43 @@ namespace JarvisAssistant.MAUI.Controls
     /// </summary>
     public class VoiceIndicator : SKCanvasView, INotifyPropertyChanged
     {
+        // Bindable Properties for XAML binding
+        public static readonly BindableProperty ActivityLevelProperty =
+            BindableProperty.Create(nameof(ActivityLevel), typeof(double), typeof(VoiceIndicator), 0.0,
+                propertyChanged: OnActivityLevelChanged);
+
+        public static readonly BindableProperty IsActiveProperty =
+            BindableProperty.Create(nameof(IsActive), typeof(bool), typeof(VoiceIndicator), false,
+                propertyChanged: OnIsActiveChanged);
+
+        public double ActivityLevel
+        {
+            get => (double)GetValue(ActivityLevelProperty);
+            set => SetValue(ActivityLevelProperty, value);
+        }
+
+        public bool IsActive
+        {
+            get => (bool)GetValue(IsActiveProperty);
+            set => SetValue(IsActiveProperty, value);
+        }
+
+        private static void OnActivityLevelChanged(BindableObject bindable, object oldValue, object newValue)
+        {
+            if (bindable is VoiceIndicator indicator && newValue is double level)
+            {
+                indicator.AudioLevel = (float)Math.Max(0.0, Math.Min(1.0, level));
+            }
+        }
+
+        private static void OnIsActiveChanged(BindableObject bindable, object oldValue, object newValue)
+        {
+            if (bindable is VoiceIndicator indicator && newValue is bool isActive)
+            {
+                indicator.State = isActive ? VoiceIndicatorState.Listening : VoiceIndicatorState.Inactive;
+            }
+        }
+
         private readonly ILogger<VoiceIndicator>? _logger;
         private readonly Timer _animationTimer;
         
@@ -22,12 +59,13 @@ namespace JarvisAssistant.MAUI.Controls
         private DateTime _lastUpdateTime = DateTime.Now;
         private bool _isAnimating = false;
 
-        // Visual properties
+        // Visual properties - Afrofuturistic theme
         private VoiceIndicatorState _state = VoiceIndicatorState.Inactive;
-        private SKColor _primaryColor = SKColors.DodgerBlue;
-        private SKColor _accentColor = SKColors.LightBlue;
-        private SKColor _errorColor = SKColors.Red;
-        private SKColor _inactiveColor = SKColors.Gray;
+        private SKColor _primaryColor = SKColor.Parse("#4A148C"); // Deep purple
+        private SKColor _accentColor = SKColor.Parse("#FFD700"); // Gold
+        private SKColor _glowColor = SKColor.Parse("#00E5FF"); // Glow blue
+        private SKColor _errorColor = SKColor.Parse("#FF5722");
+        private SKColor _inactiveColor = SKColor.Parse("#9E9E9E");
 
         // Platform-specific sizing
         private float _tvMultiplier = 1.5f;

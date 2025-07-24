@@ -4,12 +4,42 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:local="clr-namespace:JarvisAssistant.MAUI"
+    xmlns:views="clr-namespace:JarvisAssistant.MAUI.Views"
     Shell.FlyoutBehavior="Disabled"
-    Title="JarvisAssistant.MAUI">
+    Title="JARVIS Assistant">
 
+    <Shell.Resources>
+        <ResourceDictionary>
+            <!-- Jarvis Theme Colors -->
+            <Color x:Key="PrimaryPurple">#4A148C</Color>
+            <Color x:Key="AccentGold">#FFD700</Color>
+            <Color x:Key="DarkBackground">#0A0A0A</Color>
+            
+            <!-- Shell styling -->
+            <Style x:Key="BaseShellItemStyle" TargetType="BaseShellItem">
+                <Setter Property="Shell.BackgroundColor" Value="{StaticResource PrimaryPurple}" />
+                <Setter Property="Shell.ForegroundColor" Value="{StaticResource AccentGold}" />
+                <Setter Property="Shell.TitleColor" Value="{StaticResource AccentGold}" />
+            </Style>
+        </ResourceDictionary>
+    </Shell.Resources>
+
+    <!-- Main Home Page -->
     <ShellContent
         Title="Home"
         ContentTemplate="{DataTemplate local:MainPage}"
         Route="MainPage" />
+
+    <!-- Chat Page -->
+    <ShellContent
+        Title="Chat"
+        ContentTemplate="{DataTemplate views:ChatPage}"
+        Route="ChatPage" />
+
+    <!-- Voice Demo Page -->
+    <ShellContent
+        Title="Voice Demo"
+        ContentTemplate="{DataTemplate views:VoiceDemoPage}"
+        Route="VoiceDemoPage" />
 
 </Shell>

@@ -1,0 +1,405 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage x:Class="JarvisAssistant.MAUI.Views.ChatPage"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:JarvisAssistant.MAUI.Controls"
+             xmlns:models="clr-namespace:JarvisAssistant.MAUI.Models"
+             xmlns:viewmodels="clr-namespace:JarvisAssistant.MAUI.ViewModels"
+             xmlns:behaviors="clr-namespace:JarvisAssistant.MAUI.Behaviors"
+             xmlns:converters="clr-namespace:JarvisAssistant.MAUI.Converters"
+             x:DataType="viewmodels:ChatViewModel"
+             Title="JARVIS Assistant"
+             Shell.NavBarIsVisible="False">
+
+    <ContentPage.Resources>
+        <ResourceDictionary>
+            <!-- Value Converters -->
+            <converters:InvertedBoolConverter x:Key="InvertedBoolConverter" />
+            <converters:BoolToColorConverter x:Key="BoolToColorConverter" />
+            <converters:StringToBoolConverter x:Key="StringToBoolConverter" />
+            <converters:MessageTypeToColorConverter x:Key="MessageTypeToColorConverter" />
+            <converters:MessageTypeToIconConverter x:Key="MessageTypeToIconConverter" />
+            <converters:VoiceActivityToOpacityConverter x:Key="VoiceActivityToOpacityConverter" />
+
+            <!-- Afrofuturistic Color Scheme -->
+            <Color x:Key="PrimaryPurple">#4A148C</Color>
+            <Color x:Key="SecondaryPurple">#7B1FA2</Color>
+            <Color x:Key="AccentGold">#FFD700</Color>
+            <Color x:Key="DarkBackground">#0A0A0A</Color>
+            <Color x:Key="LightPurple">#E1BEE7</Color>
+            <Color x:Key="GlowBlue">#00E5FF</Color>
+            
+            <!-- Platform-specific styles -->
+            <OnPlatform x:Key="TitleFontSize" x:TypeArguments="x:Double">
+                <On Platform="WinUI">24</On>
+                <On Platform="Android">20</On>
+                <On Platform="iOS">20</On>
+                <On Platform="Tizen">32</On>
+            </OnPlatform>
+            
+            <OnPlatform x:Key="ButtonFontSize" x:TypeArguments="x:Double">
+                <On Platform="WinUI">14</On>
+                <On Platform="Android">16</On>
+                <On Platform="iOS">16</On>
+                <On Platform="Tizen">20</On>
+            </OnPlatform>
+
+            <!-- Data Templates -->
+            <DataTemplate x:Key="ChatMessageTemplate" x:DataType="models:ChatMessage">
+                <controls:ChatBubbleControl Message="{Binding .}" ShowAnimation="True" />
+            </DataTemplate>
+
+            <!-- Styles -->
+            <Style x:Key="JarvisButtonStyle" TargetType="Button">
+                <Setter Property="BackgroundColor" Value="{StaticResource AccentGold}" />
+                <Setter Property="TextColor" Value="{StaticResource DarkBackground}" />
+                <Setter Property="FontFamily" Value="OpenSans-Semibold" />
+                <Setter Property="FontSize" Value="{StaticResource ButtonFontSize}" />
+                <Setter Property="CornerRadius" Value="8" />
+                <Setter Property="Padding" Value="16,8" />
+            </Style>
+
+            <Style x:Key="VoiceButtonStyle" TargetType="Button">
+                <Setter Property="BackgroundColor" Value="{StaticResource GlowBlue}" />
+                <Setter Property="TextColor" Value="{StaticResource DarkBackground}" />
+                <Setter Property="FontFamily" Value="OpenSans-Semibold" />
+                <Setter Property="FontSize" Value="{StaticResource ButtonFontSize}" />
+                <Setter Property="CornerRadius" Value="25" />
+                <Setter Property="WidthRequest" Value="50" />
+                <Setter Property="HeightRequest" Value="50" />
+            </Style>
+
+            <Style x:Key="JarvisEntryStyle" TargetType="Entry">
+                <Setter Property="BackgroundColor" Value="Transparent" />
+                <Setter Property="TextColor" Value="{StaticResource LightPurple}" />
+                <Setter Property="PlaceholderColor" Value="#9E9E9E" />
+                <Setter Property="FontFamily" Value="OpenSans-Regular" />
+                <Setter Property="FontSize" Value="{StaticResource ButtonFontSize}" />
+            </Style>
+        </ResourceDictionary>
+    </ContentPage.Resources>
+
+    <!-- Responsive Layout based on device idiom -->
+    <Grid>
+        <!-- Desktop Layout: Multi-panel -->
+        <Grid x:Name="DesktopLayout" IsVisible="{OnIdiom Desktop=True, Default=False}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="250" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="200" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Sidebar -->
+            <Border Grid.Column="0" 
+                    BackgroundColor="{StaticResource PrimaryPurple}"
+                    StrokeThickness="0">
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Color="{StaticResource PrimaryPurple}" Offset="0" />
+                        <GradientStop Color="{StaticResource SecondaryPurple}" Offset="1" />
+                    </LinearGradientBrush>
+                </Border.Background>
+                
+                <StackLayout Padding="16" Spacing="20">
+                    <!-- Logo/Title -->
+                    <Label Text="JARVIS" 
+                           FontFamily="OpenSans-Semibold"
+                           FontSize="28"
+                           TextColor="{StaticResource AccentGold}"
+                           HorizontalOptions="Center" />
+                    
+                    <!-- Voice Mode Toggle -->
+                    <StackLayout IsVisible="{Binding ShowVoiceToggle}">
+                        <Label Text="Voice Mode" 
+                               FontFamily="OpenSans-Regular"
+                               FontSize="14"
+                               TextColor="{StaticResource LightPurple}" />
+                        <CheckBox IsChecked="{Binding IsVoiceModeActive}"
+                                  Color="{StaticResource AccentGold}" />
+                    </StackLayout>
+
+                    <!-- Voice Activity Indicator -->
+                    <controls:VoiceIndicator ActivityLevel="{Binding VoiceActivityLevel}"
+                                           IsActive="{Binding IsListening}"
+                                           IsVisible="{Binding IsVoiceModeActive}" />
+
+                    <!-- Quick Actions -->
+                    <Button Text="Clear Chat" 
+                            Command="{Binding ClearConversationCommand}"
+                            Style="{StaticResource JarvisButtonStyle}" />
+                    
+                    <Button Text="Refresh" 
+                            Command="{Binding RefreshConversationCommand}"
+                            Style="{StaticResource JarvisButtonStyle}" />
+                </StackLayout>
+            </Border>
+
+            <!-- Main Chat Area -->
+            <Border Grid.Column="1" 
+                    BackgroundColor="{StaticResource DarkBackground}"
+                    StrokeThickness="0">
+                <!-- Geometric pattern background -->
+                <Grid>
+                    <controls:GeometricPatternView PatternColor="{StaticResource SecondaryPurple}"
+                                                 PatternOpacity="0.05" />
+                    
+                    <!-- Chat content -->
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <!-- Messages List -->
+                        <RefreshView Grid.Row="0" 
+                                   Command="{Binding RefreshConversationCommand}"
+                                   RefreshColor="{StaticResource AccentGold}">
+                            <CollectionView ItemsSource="{Binding Messages}"
+                                          ItemTemplate="{StaticResource ChatMessageTemplate}"
+                                          x:Name="ChatCollectionView">
+                                <CollectionView.Behaviors>
+                                    <behaviors:ScrollToBottomBehavior />
+                                </CollectionView.Behaviors>
+                            </CollectionView>
+                        </RefreshView>
+
+                        <!-- Input Area -->
+                        <Border Grid.Row="1" 
+                                BackgroundColor="{StaticResource PrimaryPurple}"
+                                Padding="16"
+                                StrokeThickness="0">
+                            <Grid ColumnDefinitions="*,Auto,Auto">
+                                <Entry Grid.Column="0"
+                                       Text="{Binding CurrentMessage}"
+                                       Placeholder="Ask JARVIS anything..."
+                                       Style="{StaticResource JarvisEntryStyle}"
+                                       ReturnCommand="{Binding SendMessageCommand}" />
+                                
+                                <Button Grid.Column="1"
+                                        Text="🎤"
+                                        Command="{Binding ProcessVoiceCommandCommand}"
+                                        Style="{StaticResource VoiceButtonStyle}"
+                                        IsVisible="{Binding IsVoiceModeActive}"
+                                        Margin="8,0,0,0" />
+                                        
+                                <Button Grid.Column="2"
+                                        Text="Send"
+                                        Command="{Binding SendMessageCommand}"
+                                        Style="{StaticResource JarvisButtonStyle}"
+                                        IsEnabled="{Binding IsSending, Converter={StaticResource InvertedBoolConverter}}"
+                                        Margin="8,0,0,0" />
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <!-- Status Panel -->
+            <Border Grid.Column="2" 
+                    BackgroundColor="{StaticResource SecondaryPurple}"
+                    StrokeThickness="0">
+                <StackLayout Padding="16" Spacing="16">
+                    <Label Text="System Status" 
+                           FontFamily="OpenSans-Semibold"
+                           FontSize="16"
+                           TextColor="{StaticResource AccentGold}" />
+                    
+                    <Ellipse Fill="{Binding IsConnected, Converter={StaticResource BoolToColorConverter}}"
+                             WidthRequest="12"
+                             HeightRequest="12" />
+                    
+                    <Label Text="{Binding StatusMessage}"
+                           FontFamily="OpenSans-Regular"
+                           FontSize="12"
+                           TextColor="{StaticResource LightPurple}"
+                           LineBreakMode="WordWrap" />
+                    
+                    <Label Text="{Binding VoiceCommandFeedback}"
+                           FontFamily="OpenSans-Regular"
+                           FontSize="10"
+                           TextColor="{StaticResource GlowBlue}"
+                           LineBreakMode="WordWrap"
+                           IsVisible="{Binding VoiceCommandFeedback, Converter={StaticResource StringToBoolConverter}}" />
+                </StackLayout>
+            </Border>
+        </Grid>
+
+        <!-- Mobile Layout: Single column -->
+        <Grid x:Name="MobileLayout" IsVisible="{OnIdiom Phone=True, Default=False}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- Header -->
+            <Border Grid.Row="0" 
+                    BackgroundColor="{StaticResource PrimaryPurple}"
+                    Padding="16,8"
+                    StrokeThickness="0">
+                <Grid ColumnDefinitions="*,Auto,Auto">
+                    <Label Grid.Column="0"
+                           Text="JARVIS Assistant" 
+                           FontFamily="Orbitron-Bold"
+                           FontSize="20"
+                           TextColor="{StaticResource AccentGold}"
+                           VerticalOptions="Center" />
+                    
+                    <controls:VoiceIndicator Grid.Column="1"
+                                           ActivityLevel="{Binding VoiceActivityLevel}"
+                                           IsActive="{Binding IsListening}"
+                                           IsVisible="{Binding IsVoiceModeActive}"
+                                           WidthRequest="24"
+                                           HeightRequest="24" />
+                    
+                    <CheckBox Grid.Column="2"
+                              IsChecked="{Binding IsVoiceModeActive}"
+                              Color="{StaticResource AccentGold}"
+                              IsVisible="{Binding ShowVoiceToggle}" />
+                </Grid>
+            </Border>
+
+            <!-- Chat Area -->
+            <Border Grid.Row="1" 
+                    BackgroundColor="{StaticResource DarkBackground}"
+                    StrokeThickness="0">
+                <Grid>
+                    <controls:GeometricPatternView PatternColor="{StaticResource SecondaryPurple}"
+                                                 PatternOpacity="0.03" />
+                    
+                    <RefreshView Command="{Binding RefreshConversationCommand}"
+                               RefreshColor="{StaticResource AccentGold}">
+                        <CollectionView ItemsSource="{Binding Messages}"
+                                      ItemTemplate="{StaticResource ChatMessageTemplate}"
+                                      x:Name="MobileChatCollectionView">
+                            <CollectionView.Behaviors>
+                                <behaviors:ScrollToBottomBehavior />
+                            </CollectionView.Behaviors>
+                        </CollectionView>
+                    </RefreshView>
+                </Grid>
+            </Border>
+
+            <!-- Voice Feedback -->
+            <Border Grid.Row="2" 
+                    BackgroundColor="{StaticResource GlowBlue}"
+                    IsVisible="{Binding VoiceCommandFeedback, Converter={StaticResource StringToBoolConverter}}"
+                    Padding="16,8"
+                    StrokeThickness="0">
+                <Label Text="{Binding VoiceCommandFeedback}"
+                       FontFamily="Orbitron-Regular"
+                       FontSize="12"
+                       TextColor="{StaticResource DarkBackground}"
+                       HorizontalOptions="Center" />
+            </Border>
+
+            <!-- Input Area -->
+            <Border Grid.Row="3" 
+                    BackgroundColor="{StaticResource PrimaryPurple}"
+                    Padding="16"
+                    StrokeThickness="0">
+                <Grid ColumnDefinitions="*,Auto,Auto">
+                    <Entry Grid.Column="0"
+                           Text="{Binding CurrentMessage}"
+                           Placeholder="Ask JARVIS..."
+                           Style="{StaticResource JarvisEntryStyle}"
+                           ReturnCommand="{Binding SendMessageCommand}" />
+                    
+                    <Button Grid.Column="1"
+                            Text="🎤"
+                            Command="{Binding ProcessVoiceCommandCommand}"
+                            Style="{StaticResource VoiceButtonStyle}"
+                            IsVisible="{Binding IsVoiceModeActive}"
+                            WidthRequest="40"
+                            HeightRequest="40"
+                            Margin="8,0,0,0" />
+                            
+                    <Button Grid.Column="2"
+                            Text="→"
+                            Command="{Binding SendMessageCommand}"
+                            Style="{StaticResource VoiceButtonStyle}"
+                            IsEnabled="{Binding IsSending, Converter={StaticResource InvertedBoolConverter}}"
+                            WidthRequest="40"
+                            HeightRequest="40"
+                            Margin="8,0,0,0" />
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- TV Layout: Minimal UI with large text -->
+        <Grid x:Name="TVLayout" IsVisible="{OnIdiom TV=True, Default=False}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- Large Header for TV -->
+            <Border Grid.Row="0" 
+                    BackgroundColor="{StaticResource PrimaryPurple}"
+                    Padding="40,20"
+                    StrokeThickness="0">
+                <Grid ColumnDefinitions="*,Auto">
+                    <Label Grid.Column="0"
+                           Text="JARVIS - Just A Rather Very Intelligent System" 
+                           FontFamily="Orbitron-Bold"
+                           FontSize="32"
+                           TextColor="{StaticResource AccentGold}"
+                           VerticalOptions="Center" />
+                    
+                    <controls:VoiceIndicator Grid.Column="1"
+                                           ActivityLevel="{Binding VoiceActivityLevel}"
+                                           IsActive="{Binding IsListening}"
+                                           WidthRequest="48"
+                                           HeightRequest="48" />
+                </Grid>
+            </Border>
+
+            <!-- Large Chat Display -->
+            <Border Grid.Row="1" 
+                    BackgroundColor="{StaticResource DarkBackground}"
+                    StrokeThickness="0">
+                <Grid>
+                    <controls:GeometricPatternView PatternColor="{StaticResource SecondaryPurple}"
+                                                 PatternOpacity="0.08" />
+                    
+                    <CollectionView ItemsSource="{Binding Messages}"
+                                  ItemTemplate="{StaticResource ChatMessageTemplate}"
+                                  x:Name="TVChatCollectionView"
+                                  Margin="40">
+                        <CollectionView.Behaviors>
+                            <behaviors:ScrollToBottomBehavior />
+                        </CollectionView.Behaviors>
+                    </CollectionView>
+                </Grid>
+            </Border>
+
+            <!-- Large Voice Feedback -->
+            <Border Grid.Row="2" 
+                    BackgroundColor="{StaticResource GlowBlue}"
+                    IsVisible="{Binding VoiceCommandFeedback, Converter={StaticResource StringToBoolConverter}}"
+                    Padding="40,16"
+                    StrokeThickness="0">
+                <Label Text="{Binding VoiceCommandFeedback}"
+                       FontFamily="Orbitron-Medium"
+                       FontSize="24"
+                       TextColor="{StaticResource DarkBackground}"
+                       HorizontalOptions="Center" />
+            </Border>
+
+            <!-- TV Instructions -->
+            <Border Grid.Row="3" 
+                    BackgroundColor="{StaticResource SecondaryPurple}"
+                    Padding="40,16"
+                    StrokeThickness="0">
+                <Label Text="Voice commands are always active. Press OK to speak, or use the remote to navigate."
+                       FontFamily="Orbitron-Regular"
+                       FontSize="18"
+                       TextColor="{StaticResource LightPurple}"
+                       HorizontalOptions="Center" />
+            </Border>
+        </Grid>
+    </Grid>
+</ContentPage>
