@@ -1,0 +1,15 @@
+{
+  "OllamaUrl": "http://100.108.155.28:11434",
+  "TestTimeout": "00:05:00",
+  "EnableIntegrationTests": true,
+  "RequiredModels": [
+    "llama3.2",
+    "deepseek-coder"
+  ],
+  "TestModels": {
+    "General": "llama3.2",
+    "Code": "deepseek-coder"
+  },
+  "MaxStreamingChunks": 10,
+  "CancellationTestDelay": "00:00:02"
+}

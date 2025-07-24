@@ -1,0 +1,38 @@
+# Integration Test Environment for Ollama
+version: '3.8'
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama-test
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # Optional: Model initialization service
+  ollama-setup:
+    image: curlimages/curl:latest
+    depends_on:
+      ollama:
+        condition: service_healthy
+    volumes:
+      - ./scripts:/scripts:ro
+    command: |
+      sh -c "
+        echo 'Pulling required models...'
+        curl -X POST http://ollama:11434/api/pull -d '{\"name\":\"llama3.2\"}'
+        curl -X POST http://ollama:11434/api/pull -d '{\"name\":\"deepseek-coder\"}'
+        echo 'Models ready for testing'
+      "
+
+volumes:
+  ollama-data:
