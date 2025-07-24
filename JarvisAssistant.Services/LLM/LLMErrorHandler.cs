@@ -7,68 +7,6 @@ using JarvisAssistant.Core.Models;
 namespace JarvisAssistant.Services.LLM
 {
     /// <summary>
-    /// Error code constants for LLM communication failures.
-    /// </summary>
-    public static class LLMErrorCodes
-    {
-        // HTTP Status Code Errors
-        public const string HTTP_404_NOT_FOUND = "LLM-HTTP-404-001";
-        public const string HTTP_401_UNAUTHORIZED = "LLM-HTTP-401-001";
-        public const string HTTP_403_FORBIDDEN = "LLM-HTTP-403-001";
-        public const string HTTP_500_INTERNAL_ERROR = "LLM-HTTP-500-001";
-        public const string HTTP_502_BAD_GATEWAY = "LLM-HTTP-502-001";
-        public const string HTTP_503_SERVICE_UNAVAILABLE = "LLM-HTTP-503-001";
-        public const string HTTP_504_GATEWAY_TIMEOUT = "LLM-HTTP-504-001";
-        public const string HTTP_400_BAD_REQUEST = "LLM-HTTP-400-001";
-        public const string HTTP_408_REQUEST_TIMEOUT = "LLM-HTTP-408-001";
-        public const string HTTP_429_RATE_LIMITED = "LLM-HTTP-429-001";
-
-        // Network Connection Errors
-        public const string CONN_REFUSED = "LLM-CONN-001";
-        public const string CONN_HOST_NOT_FOUND = "LLM-CONN-002";
-        public const string CONN_NETWORK_UNREACHABLE = "LLM-CONN-003";
-        public const string CONN_TIMEOUT = "LLM-CONN-004";
-        public const string CONN_SSL_FAILURE = "LLM-CONN-005";
-
-        // Request/Response Errors
-        public const string REQ_TIMEOUT = "LLM-REQ-001";
-        public const string REQ_CANCELLED = "LLM-REQ-002";
-        public const string RESP_INVALID_JSON = "LLM-RESP-001";
-        public const string RESP_EMPTY = "LLM-RESP-002";
-        public const string RESP_TOO_LARGE = "LLM-RESP-003";
-
-        // Streaming Errors
-        public const string STREAM_CONN_DROPPED = "LLM-STREAM-001";
-        public const string STREAM_TIMEOUT = "LLM-STREAM-002";
-        public const string STREAM_INVALID_FORMAT = "LLM-STREAM-003";
-
-        // Model Errors
-        public const string MODEL_NOT_FOUND = "LLM-MODEL-001";
-        public const string MODEL_UNAVAILABLE = "LLM-MODEL-002";
-        public const string MODEL_LOADING = "LLM-MODEL-003";
-
-        // Resource Errors
-        public const string RESOURCE_OUT_OF_MEMORY = "LLM-RESOURCE-001";
-        public const string RESOURCE_DISK_FULL = "LLM-RESOURCE-002";
-        public const string RESOURCE_CPU_OVERLOAD = "LLM-RESOURCE-003";
-
-        // Configuration Errors
-        public const string CONFIG_INVALID_URL = "LLM-CONFIG-001";
-        public const string CONFIG_INVALID_TIMEOUT = "LLM-CONFIG-002";
-        public const string CONFIG_MISSING_PARAMS = "LLM-CONFIG-003";
-
-        // Retry and Recovery Errors
-        public const string RETRY_MAX_ATTEMPTS = "LLM-RETRY-001";
-        public const string RETRY_BACKOFF_ACTIVE = "LLM-RETRY-002";
-
-        // Generic/Unknown Errors
-        public const string UNKNOWN_ERROR = "LLM-UNKNOWN-001";
-        public const string HTTP_GENERIC = "LLM-HTTP-GENERIC-001";
-        public const string SOCKET_GENERIC = "LLM-SOCKET-GENERIC-001";
-        public const string OPERATION_INVALID = "LLM-OPERATION-001";
-    }
-
-    /// <summary>
     /// Error message templates for user-friendly error descriptions.
     /// </summary>
     public static class LLMErrorMessages
@@ -82,7 +20,10 @@ namespace JarvisAssistant.Services.LLM
             [LLMErrorCodes.HTTP_502_BAD_GATEWAY] = "The LLM service gateway is not responding properly. Please check your network connection.",
             [LLMErrorCodes.HTTP_503_SERVICE_UNAVAILABLE] = "The LLM service is temporarily unavailable. Please try again in a few moments.",
             [LLMErrorCodes.HTTP_504_GATEWAY_TIMEOUT] = "The LLM service request timed out at the gateway. The service may be overloaded.",
+            [LLMErrorCodes.HTTP_400_BAD_REQUEST] = "The request to the LLM service was invalid. Please check your input parameters.",
+            [LLMErrorCodes.HTTP_408_REQUEST_TIMEOUT] = "The request to the LLM service timed out. Please try again.",
             [LLMErrorCodes.HTTP_429_RATE_LIMITED] = "Too many requests to the LLM service. Please wait before trying again.",
+            [LLMErrorCodes.HTTP_GENERIC] = "An HTTP error occurred while communicating with the LLM service.",
             
             [LLMErrorCodes.CONN_REFUSED] = "Connection to the LLM service was refused. Please ensure the service is running and accessible.",
             [LLMErrorCodes.CONN_HOST_NOT_FOUND] = "The LLM service host could not be found. Please check the server address.",
@@ -94,11 +35,30 @@ namespace JarvisAssistant.Services.LLM
             [LLMErrorCodes.REQ_CANCELLED] = "The request to the LLM service was cancelled.",
             [LLMErrorCodes.RESP_INVALID_JSON] = "The LLM service returned an invalid response format.",
             [LLMErrorCodes.RESP_EMPTY] = "The LLM service returned an empty response.",
+            [LLMErrorCodes.RESP_TOO_LARGE] = "The LLM service response was too large to process.",
+            
+            [LLMErrorCodes.STREAM_CONNECTION_DROPPED] = "The streaming connection to the LLM service was dropped unexpectedly.",
+            [LLMErrorCodes.STREAM_INVALID_FORMAT] = "The LLM service returned an invalid streaming format.",
+            [LLMErrorCodes.STREAM_TIMEOUT] = "The streaming request to the LLM service timed out.",
             
             [LLMErrorCodes.MODEL_NOT_FOUND] = "The requested LLM model is not available. Please ensure the model is installed.",
             [LLMErrorCodes.MODEL_UNAVAILABLE] = "The LLM model is currently unavailable. It may be loading or updating.",
+            [LLMErrorCodes.MODEL_LOADING] = "The LLM model is currently loading. Please wait and try again.",
             
-            [LLMErrorCodes.RETRY_MAX_ATTEMPTS] = "Maximum retry attempts exceeded when trying to connect to the LLM service."
+            [LLMErrorCodes.RESOURCE_OUT_OF_MEMORY] = "Insufficient memory to process the LLM request.",
+            [LLMErrorCodes.RESOURCE_DISK_FULL] = "Insufficient disk space for the LLM operation.",
+            [LLMErrorCodes.RESOURCE_CPU_OVERLOAD] = "CPU overload detected during LLM operation.",
+            
+            [LLMErrorCodes.CONFIG_INVALID_URL] = "Invalid LLM service URL configuration. Please check the service endpoint.",
+            [LLMErrorCodes.CONFIG_INVALID_TIMEOUT] = "Invalid timeout configuration for the LLM service.",
+            [LLMErrorCodes.CONFIG_MISSING_PARAMS] = "Missing required configuration parameters for the LLM service.",
+            
+            [LLMErrorCodes.RETRY_MAX_ATTEMPTS] = "Maximum retry attempts exceeded when trying to connect to the LLM service.",
+            [LLMErrorCodes.RETRY_BACKOFF_ACTIVE] = "Retry backoff is currently active. Please wait before retrying.",
+            
+            [LLMErrorCodes.UNKNOWN_ERROR] = "An unexpected error occurred while communicating with the LLM service.",
+            [LLMErrorCodes.SOCKET_GENERIC] = "A network socket error occurred while communicating with the LLM service.",
+            [LLMErrorCodes.OPERATION_INVALID] = "An invalid operation was attempted with the LLM service."
         };
 
         public static string GetErrorMessage(string errorCode, string? additionalInfo = null)
@@ -172,7 +132,7 @@ namespace JarvisAssistant.Services.LLM
                     ErrorCode = LLMErrorCodes.HTTP_404_NOT_FOUND,
                     UserMessage = LLMErrorMessages.GetErrorMessage(LLMErrorCodes.HTTP_404_NOT_FOUND),
                     TechnicalDetails = exception.Message,
-                    Severity = ErrorSeverity.High,
+                    Severity = ErrorSeverity.Critical,
                     IsRetryable = false,
                     SuggestedAction = "Ensure Ollama is installed and running on the configured port (default: 11434)"
                 };
@@ -185,7 +145,7 @@ namespace JarvisAssistant.Services.LLM
                     ErrorCode = LLMErrorCodes.HTTP_401_UNAUTHORIZED,
                     UserMessage = LLMErrorMessages.GetErrorMessage(LLMErrorCodes.HTTP_401_UNAUTHORIZED),
                     TechnicalDetails = exception.Message,
-                    Severity = ErrorSeverity.High,
+                    Severity = ErrorSeverity.Critical,
                     IsRetryable = false,
                     SuggestedAction = "Check authentication credentials and API access permissions"
                 };
@@ -198,7 +158,7 @@ namespace JarvisAssistant.Services.LLM
                     ErrorCode = LLMErrorCodes.HTTP_403_FORBIDDEN,
                     UserMessage = LLMErrorMessages.GetErrorMessage(LLMErrorCodes.HTTP_403_FORBIDDEN),
                     TechnicalDetails = exception.Message,
-                    Severity = ErrorSeverity.High,
+                    Severity = ErrorSeverity.Critical,
                     IsRetryable = false,
                     SuggestedAction = "Verify access permissions and API key configuration"
                 };
@@ -211,7 +171,7 @@ namespace JarvisAssistant.Services.LLM
                     ErrorCode = LLMErrorCodes.HTTP_500_INTERNAL_ERROR,
                     UserMessage = LLMErrorMessages.GetErrorMessage(LLMErrorCodes.HTTP_500_INTERNAL_ERROR),
                     TechnicalDetails = exception.Message,
-                    Severity = ErrorSeverity.Medium,
+                    Severity = ErrorSeverity.Error,
                     IsRetryable = true,
                     SuggestedAction = "Wait a moment and try again. If the problem persists, check server logs"
                 };
@@ -224,7 +184,7 @@ namespace JarvisAssistant.Services.LLM
                     ErrorCode = LLMErrorCodes.HTTP_502_BAD_GATEWAY,
                     UserMessage = LLMErrorMessages.GetErrorMessage(LLMErrorCodes.HTTP_502_BAD_GATEWAY),
                     TechnicalDetails = exception.Message,
-                    Severity = ErrorSeverity.Medium,
+                    Severity = ErrorSeverity.Error,
                     IsRetryable = true,
                     SuggestedAction = "Check proxy or load balancer configuration"
                 };
@@ -237,7 +197,7 @@ namespace JarvisAssistant.Services.LLM
                     ErrorCode = LLMErrorCodes.HTTP_503_SERVICE_UNAVAILABLE,
                     UserMessage = LLMErrorMessages.GetErrorMessage(LLMErrorCodes.HTTP_503_SERVICE_UNAVAILABLE),
                     TechnicalDetails = exception.Message,
-                    Severity = ErrorSeverity.Medium,
+                    Severity = ErrorSeverity.Error,
                     IsRetryable = true,
                     SuggestedAction = "Service is temporarily overloaded. Wait and retry in a few minutes"
                 };
@@ -250,7 +210,7 @@ namespace JarvisAssistant.Services.LLM
                     ErrorCode = LLMErrorCodes.HTTP_504_GATEWAY_TIMEOUT,
                     UserMessage = LLMErrorMessages.GetErrorMessage(LLMErrorCodes.HTTP_504_GATEWAY_TIMEOUT),
                     TechnicalDetails = exception.Message,
-                    Severity = ErrorSeverity.Medium,
+                    Severity = ErrorSeverity.Error,
                     IsRetryable = true,
                     SuggestedAction = "Server is overloaded. Try a simpler query or wait before retrying"
                 };
@@ -263,7 +223,7 @@ namespace JarvisAssistant.Services.LLM
                     ErrorCode = LLMErrorCodes.HTTP_429_RATE_LIMITED,
                     UserMessage = LLMErrorMessages.GetErrorMessage(LLMErrorCodes.HTTP_429_RATE_LIMITED),
                     TechnicalDetails = exception.Message,
-                    Severity = ErrorSeverity.Low,
+                    Severity = ErrorSeverity.Warning,
                     IsRetryable = true,
                     SuggestedAction = "Wait before making additional requests to avoid rate limiting"
                 };
@@ -277,7 +237,7 @@ namespace JarvisAssistant.Services.LLM
                     ErrorCode = LLMErrorCodes.CONN_REFUSED,
                     UserMessage = LLMErrorMessages.GetErrorMessage(LLMErrorCodes.CONN_REFUSED),
                     TechnicalDetails = exception.Message,
-                    Severity = ErrorSeverity.High,
+                    Severity = ErrorSeverity.Critical,
                     IsRetryable = true,
                     SuggestedAction = "Verify Ollama is running: 'ollama serve' or check if port 11434 is accessible"
                 };
@@ -290,7 +250,7 @@ namespace JarvisAssistant.Services.LLM
                     ErrorCode = LLMErrorCodes.CONN_SSL_FAILURE,
                     UserMessage = LLMErrorMessages.GetErrorMessage(LLMErrorCodes.CONN_SSL_FAILURE),
                     TechnicalDetails = exception.Message,
-                    Severity = ErrorSeverity.High,
+                    Severity = ErrorSeverity.Critical,
                     IsRetryable = false,
                     SuggestedAction = "Check SSL/TLS configuration or use HTTP instead of HTTPS for local development"
                 };
@@ -302,7 +262,7 @@ namespace JarvisAssistant.Services.LLM
                 ErrorCode = LLMErrorCodes.HTTP_GENERIC,
                 UserMessage = "An HTTP error occurred while communicating with the LLM service",
                 TechnicalDetails = exception.Message,
-                Severity = ErrorSeverity.Medium,
+                Severity = ErrorSeverity.Error,
                 IsRetryable = true,
                 SuggestedAction = "Check network connectivity and service configuration"
             };
@@ -320,7 +280,7 @@ namespace JarvisAssistant.Services.LLM
                     ErrorCode = LLMErrorCodes.REQ_TIMEOUT,
                     UserMessage = LLMErrorMessages.GetErrorMessage(LLMErrorCodes.REQ_TIMEOUT),
                     TechnicalDetails = exception.Message,
-                    Severity = ErrorSeverity.Medium,
+                    Severity = ErrorSeverity.Error,
                     IsRetryable = true,
                     SuggestedAction = "Try a shorter prompt or increase timeout settings. The model may be processing a complex request"
                 };
@@ -331,7 +291,7 @@ namespace JarvisAssistant.Services.LLM
                 ErrorCode = LLMErrorCodes.REQ_CANCELLED,
                 UserMessage = LLMErrorMessages.GetErrorMessage(LLMErrorCodes.REQ_CANCELLED),
                 TechnicalDetails = exception.Message,
-                Severity = ErrorSeverity.Low,
+                Severity = ErrorSeverity.Warning,
                 IsRetryable = true,
                 SuggestedAction = "The request was cancelled. You can retry the operation"
             };
@@ -347,7 +307,7 @@ namespace JarvisAssistant.Services.LLM
                 ErrorCode = LLMErrorCodes.REQ_TIMEOUT,
                 UserMessage = LLMErrorMessages.GetErrorMessage(LLMErrorCodes.REQ_TIMEOUT),
                 TechnicalDetails = exception.Message,
-                Severity = ErrorSeverity.Medium,
+                Severity = ErrorSeverity.Error,
                 IsRetryable = true,
                 SuggestedAction = "The model is taking longer than expected. Try a simpler prompt or check server performance"
             };
@@ -363,7 +323,7 @@ namespace JarvisAssistant.Services.LLM
                 ErrorCode = LLMErrorCodes.RESP_INVALID_JSON,
                 UserMessage = LLMErrorMessages.GetErrorMessage(LLMErrorCodes.RESP_INVALID_JSON),
                 TechnicalDetails = exception.Message,
-                Severity = ErrorSeverity.Medium,
+                Severity = ErrorSeverity.Error,
                 IsRetryable = true,
                 SuggestedAction = "The server returned malformed data. This may indicate a server-side issue"
             };
@@ -381,7 +341,7 @@ namespace JarvisAssistant.Services.LLM
                     ErrorCode = LLMErrorCodes.CONN_REFUSED,
                     UserMessage = LLMErrorMessages.GetErrorMessage(LLMErrorCodes.CONN_REFUSED),
                     TechnicalDetails = $"{exception.SocketErrorCode}: {exception.Message}",
-                    Severity = ErrorSeverity.High,
+                    Severity = ErrorSeverity.Critical,
                     IsRetryable = true,
                     SuggestedAction = "Start Ollama service: 'ollama serve' or check firewall settings"
                 },
@@ -391,7 +351,7 @@ namespace JarvisAssistant.Services.LLM
                     ErrorCode = LLMErrorCodes.CONN_HOST_NOT_FOUND,
                     UserMessage = LLMErrorMessages.GetErrorMessage(LLMErrorCodes.CONN_HOST_NOT_FOUND),
                     TechnicalDetails = $"{exception.SocketErrorCode}: {exception.Message}",
-                    Severity = ErrorSeverity.High,
+                    Severity = ErrorSeverity.Critical,
                     IsRetryable = false,
                     SuggestedAction = "Verify the server hostname or IP address in configuration"
                 },
@@ -401,7 +361,7 @@ namespace JarvisAssistant.Services.LLM
                     ErrorCode = LLMErrorCodes.CONN_NETWORK_UNREACHABLE,
                     UserMessage = LLMErrorMessages.GetErrorMessage(LLMErrorCodes.CONN_NETWORK_UNREACHABLE),
                     TechnicalDetails = $"{exception.SocketErrorCode}: {exception.Message}",
-                    Severity = ErrorSeverity.High,
+                    Severity = ErrorSeverity.Critical,
                     IsRetryable = true,
                     SuggestedAction = "Check network connectivity and routing configuration"
                 },
@@ -411,7 +371,7 @@ namespace JarvisAssistant.Services.LLM
                     ErrorCode = LLMErrorCodes.CONN_TIMEOUT,
                     UserMessage = LLMErrorMessages.GetErrorMessage(LLMErrorCodes.CONN_TIMEOUT),
                     TechnicalDetails = $"{exception.SocketErrorCode}: {exception.Message}",
-                    Severity = ErrorSeverity.Medium,
+                    Severity = ErrorSeverity.Error,
                     IsRetryable = true,
                     SuggestedAction = "Check network latency and server performance"
                 },
@@ -421,7 +381,7 @@ namespace JarvisAssistant.Services.LLM
                     ErrorCode = LLMErrorCodes.SOCKET_GENERIC,
                     UserMessage = "A network socket error occurred",
                     TechnicalDetails = exception.Message,
-                    Severity = ErrorSeverity.Medium,
+                    Severity = ErrorSeverity.Error,
                     IsRetryable = true,
                     SuggestedAction = "Check network connectivity and server availability"
                 }
@@ -438,7 +398,7 @@ namespace JarvisAssistant.Services.LLM
                 ErrorCode = LLMErrorCodes.RESOURCE_OUT_OF_MEMORY,
                 UserMessage = "Insufficient memory to process the request",
                 TechnicalDetails = exception.Message,
-                Severity = ErrorSeverity.High,
+                Severity = ErrorSeverity.Critical,
                 IsRetryable = false,
                 SuggestedAction = "Try a shorter prompt or restart the application to free memory"
             };
@@ -454,7 +414,7 @@ namespace JarvisAssistant.Services.LLM
                 ErrorCode = LLMErrorCodes.REQ_CANCELLED,
                 UserMessage = LLMErrorMessages.GetErrorMessage(LLMErrorCodes.REQ_CANCELLED),
                 TechnicalDetails = exception.Message,
-                Severity = ErrorSeverity.Low,
+                Severity = ErrorSeverity.Warning,
                 IsRetryable = true,
                 SuggestedAction = "The operation was cancelled. You can retry if needed"
             };
@@ -470,7 +430,7 @@ namespace JarvisAssistant.Services.LLM
                 ErrorCode = LLMErrorCodes.CONFIG_MISSING_PARAMS,
                 UserMessage = "Invalid parameters provided to the LLM service",
                 TechnicalDetails = exception.Message,
-                Severity = ErrorSeverity.Medium,
+                Severity = ErrorSeverity.Error,
                 IsRetryable = false,
                 SuggestedAction = "Check the request parameters and configuration"
             };
@@ -490,7 +450,7 @@ namespace JarvisAssistant.Services.LLM
                     ErrorCode = LLMErrorCodes.MODEL_NOT_FOUND,
                     UserMessage = LLMErrorMessages.GetErrorMessage(LLMErrorCodes.MODEL_NOT_FOUND),
                     TechnicalDetails = exception.Message,
-                    Severity = ErrorSeverity.High,
+                    Severity = ErrorSeverity.Critical,
                     IsRetryable = false,
                     SuggestedAction = "Ensure required models are installed: 'ollama pull llama3.2' and 'ollama pull deepseek-coder'"
                 };
@@ -503,7 +463,7 @@ namespace JarvisAssistant.Services.LLM
                     ErrorCode = LLMErrorCodes.RETRY_MAX_ATTEMPTS,
                     UserMessage = LLMErrorMessages.GetErrorMessage(LLMErrorCodes.RETRY_MAX_ATTEMPTS),
                     TechnicalDetails = exception.Message,
-                    Severity = ErrorSeverity.High,
+                    Severity = ErrorSeverity.Critical,
                     IsRetryable = false,
                     SuggestedAction = "Check service availability and try again later"
                 };
@@ -514,7 +474,7 @@ namespace JarvisAssistant.Services.LLM
                 ErrorCode = LLMErrorCodes.OPERATION_INVALID,
                 UserMessage = "An invalid operation was attempted",
                 TechnicalDetails = exception.Message,
-                Severity = ErrorSeverity.Medium,
+                Severity = ErrorSeverity.Error,
                 IsRetryable = false,
                 SuggestedAction = "Check the operation parameters and try again"
             };
@@ -530,7 +490,7 @@ namespace JarvisAssistant.Services.LLM
                 ErrorCode = LLMErrorCodes.UNKNOWN_ERROR,
                 UserMessage = "An unexpected error occurred while communicating with the LLM service",
                 TechnicalDetails = exception.Message,
-                Severity = ErrorSeverity.Medium,
+                Severity = ErrorSeverity.Error,
                 IsRetryable = true,
                 SuggestedAction = "Try again. If the problem persists, check the application logs"
             };
@@ -543,9 +503,11 @@ namespace JarvisAssistant.Services.LLM
         {
             var logLevel = errorResponse.Severity switch
             {
-                ErrorSeverity.Low => LogLevel.Warning,
-                ErrorSeverity.Medium => LogLevel.Error,
-                ErrorSeverity.High => LogLevel.Critical,
+                ErrorSeverity.Warning => LogLevel.Warning,
+                ErrorSeverity.Error => LogLevel.Error,
+                ErrorSeverity.Critical => LogLevel.Critical,
+                ErrorSeverity.Fatal => LogLevel.Critical,
+                ErrorSeverity.Info => LogLevel.Information,
                 _ => LogLevel.Error
             };
 
@@ -583,7 +545,7 @@ namespace JarvisAssistant.Services.LLM
         /// <summary>
         /// Severity level of the error.
         /// </summary>
-        public ErrorSeverity Severity { get; set; } = ErrorSeverity.Medium;
+        public ErrorSeverity Severity { get; set; } = ErrorSeverity.Error;
 
         /// <summary>
         /// Whether the operation can be retried.
@@ -621,26 +583,5 @@ namespace JarvisAssistant.Services.LLM
                 }
             };
         }
-    }
-
-    /// <summary>
-    /// Error severity levels.
-    /// </summary>
-    public enum ErrorSeverity
-    {
-        /// <summary>
-        /// Low severity - minor issues that don't significantly impact functionality.
-        /// </summary>
-        Low,
-
-        /// <summary>
-        /// Medium severity - errors that impact functionality but can be worked around.
-        /// </summary>
-        Medium,
-
-        /// <summary>
-        /// High severity - critical errors that prevent normal operation.
-        /// </summary>
-        High
     }
 }

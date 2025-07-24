@@ -79,7 +79,7 @@ namespace JarvisAssistant.UnitTests.Services.LLM
                 .ReturnsResponse(HttpStatusCode.InternalServerError, "Internal Server Error");
 
             // Act & Assert
-            var exception = await Assert.ThrowsAsync<HttpRequestException>(
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(
                 () => _ollamaClient.GenerateAsync("Test prompt"));
             
             exception.Message.Should().Contain("Ollama API returned InternalServerError");

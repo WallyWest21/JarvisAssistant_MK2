@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using JarvisAssistant.Core.Interfaces;
 using JarvisAssistant.Core.Models;
 using Microsoft.Extensions.Logging;
 
@@ -7,7 +8,7 @@ namespace JarvisAssistant.Services
     /// <summary>
     /// Service health checker that monitors individual services for health and performance.
     /// </summary>
-    public class ServiceHealthChecker
+    public class ServiceHealthChecker : IServiceHealthChecker
     {
         private readonly HttpClient _httpClient;
         private readonly ILogger<ServiceHealthChecker> _logger;
@@ -99,7 +100,7 @@ namespace JarvisAssistant.Services
                     var state = responseTimeMs switch
                     {
                         < 100 => ServiceState.Online,
-                        <= 500 => ServiceState.Degraded,
+                        <= 1000 => ServiceState.Degraded,
                         _ => ServiceState.Degraded
                     };
 
@@ -253,10 +254,10 @@ namespace JarvisAssistant.Services
         /// </summary>
         private TimeSpan CalculateBackoffDelay(int consecutiveFailures)
         {
-            if (consecutiveFailures <= 1) return TimeSpan.Zero;
+            if (consecutiveFailures < 1) return TimeSpan.Zero;
 
             // Exponential backoff: 2^failures seconds with jitter, max 5 minutes
-            var baseDelay = Math.Min(Math.Pow(2, consecutiveFailures - 1), 300);
+            var baseDelay = Math.Min(Math.Pow(2, consecutiveFailures), 300);
             var jitter = _random.NextDouble() * 0.3; // ±30% jitter
             var delay = baseDelay * (1 + jitter);
             

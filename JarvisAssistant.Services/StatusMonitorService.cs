@@ -14,7 +14,7 @@ namespace JarvisAssistant.Services
     /// </summary>
     public class StatusMonitorService : IStatusMonitorService, IAsyncDisposable
     {
-        private readonly ServiceHealthChecker _healthChecker;
+        private readonly IServiceHealthChecker _healthChecker;
         private readonly ILogger<StatusMonitorService> _logger;
         private readonly Subject<ServiceStatus> _statusSubject;
         private readonly Dictionary<string, ServiceStatus> _serviceStatuses;
@@ -27,7 +27,7 @@ namespace JarvisAssistant.Services
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
-        public StatusMonitorService(ServiceHealthChecker healthChecker, ILogger<StatusMonitorService> logger)
+        public StatusMonitorService(IServiceHealthChecker healthChecker, ILogger<StatusMonitorService> logger)
         {
             _healthChecker = healthChecker;
             _logger = logger;

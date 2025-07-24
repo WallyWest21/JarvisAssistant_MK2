@@ -5,7 +5,8 @@ using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using JarvisAssistant.Services.LLM;
-using LLMErrorSeverity = JarvisAssistant.Services.LLM.ErrorSeverity;
+using JarvisAssistant.Core.Models;
+using LLMErrorSeverity = JarvisAssistant.Core.Models.ErrorSeverity;
 
 namespace JarvisAssistant.UnitTests.Services.LLM
 {
@@ -41,7 +42,7 @@ namespace JarvisAssistant.UnitTests.Services.LLM
             // Assert
             result.ErrorCode.Should().Be(expectedErrorCode);
             result.IsRetryable.Should().Be(expectedRetryable);
-            result.Severity.Should().Be(LLMErrorSeverity.High);
+            result.Severity.Should().Be(LLMErrorSeverity.Critical);
             result.SuggestedAction.Should().Contain("Ollama");
             result.Context.Should().Be("test context");
         }
@@ -81,7 +82,7 @@ namespace JarvisAssistant.UnitTests.Services.LLM
             // Assert
             result.ErrorCode.Should().Be(expectedErrorCode);
             result.IsRetryable.Should().Be(expectedRetryable);
-            result.Severity.Should().Be(LLMErrorSeverity.Medium);
+            result.Severity.Should().Be(LLMErrorSeverity.Error);
         }
 
         [Theory]
@@ -100,7 +101,7 @@ namespace JarvisAssistant.UnitTests.Services.LLM
             // Assert
             result.ErrorCode.Should().Be(expectedErrorCode);
             result.IsRetryable.Should().BeTrue();
-            result.Severity.Should().Be(LLMErrorSeverity.Low);
+            result.Severity.Should().Be(LLMErrorSeverity.Warning);
             result.SuggestedAction.Should().Contain("Wait before making");
         }
 
@@ -178,7 +179,7 @@ namespace JarvisAssistant.UnitTests.Services.LLM
             result.ErrorCode.Should().Be(LLMErrorCodes.CONN_REFUSED);
             result.IsRetryable.Should().BeTrue();
             result.SuggestedAction.Should().Contain("ollama serve");
-            result.Severity.Should().Be(LLMErrorSeverity.High);
+            result.Severity.Should().Be(LLMErrorSeverity.Critical);
         }
 
         [Fact]
@@ -228,7 +229,7 @@ namespace JarvisAssistant.UnitTests.Services.LLM
             // Assert
             result.ErrorCode.Should().Be(LLMErrorCodes.REQ_CANCELLED);
             result.IsRetryable.Should().BeTrue();
-            result.Severity.Should().Be(ErrorSeverity.Low);
+            result.Severity.Should().Be(ErrorSeverity.Warning);
         }
 
         [Fact]
@@ -281,7 +282,7 @@ namespace JarvisAssistant.UnitTests.Services.LLM
             // Assert
             result.ErrorCode.Should().Be(LLMErrorCodes.RESOURCE_OUT_OF_MEMORY);
             result.IsRetryable.Should().BeFalse();
-            result.Severity.Should().Be(ErrorSeverity.High);
+            result.Severity.Should().Be(ErrorSeverity.Critical);
             result.SuggestedAction.Should().Contain("shorter prompt");
         }
 
@@ -425,7 +426,7 @@ namespace JarvisAssistant.UnitTests.Services.LLM
                 ErrorCode = LLMErrorCodes.HTTP_404_NOT_FOUND,
                 UserMessage = "Service not found",
                 TechnicalDetails = "HTTP 404 error",
-                Severity = LLMErrorSeverity.High,
+                Severity = LLMErrorSeverity.Critical,
                 IsRetryable = false,
                 SuggestedAction = "Start Ollama service"
             };
@@ -512,7 +513,7 @@ namespace JarvisAssistant.UnitTests.Services.LLM
             result.UserMessage.Should().NotBeNullOrEmpty();
             result.TechnicalDetails.Should().Contain("503");
             result.Context.Should().Be(context);
-            result.Severity.Should().Be(LLMErrorSeverity.Medium);
+            result.Severity.Should().Be(LLMErrorSeverity.Error);
             result.IsRetryable.Should().BeTrue();
             result.SuggestedAction.Should().NotBeNullOrEmpty();
             result.Timestamp.Should().BeCloseTo(DateTimeOffset.UtcNow, TimeSpan.FromSeconds(5));

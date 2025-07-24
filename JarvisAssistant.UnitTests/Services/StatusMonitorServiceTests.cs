@@ -2,6 +2,7 @@ using Xunit;
 using Moq;
 using Microsoft.Extensions.Logging;
 using JarvisAssistant.Services;
+using JarvisAssistant.Core.Interfaces;
 using JarvisAssistant.Core.Models;
 using System.Reactive.Linq;
 
@@ -12,15 +13,13 @@ namespace JarvisAssistant.UnitTests.Services
     /// </summary>
     public class StatusMonitorServiceTests : IAsyncDisposable
     {
-        private readonly Mock<ServiceHealthChecker> _healthCheckerMock;
+        private readonly Mock<IServiceHealthChecker> _healthCheckerMock;
         private readonly Mock<ILogger<StatusMonitorService>> _loggerMock;
         private readonly StatusMonitorService _statusMonitorService;
 
         public StatusMonitorServiceTests()
         {
-            var httpClient = new HttpClient();
-            var healthCheckerLogger = new Mock<ILogger<ServiceHealthChecker>>();
-            _healthCheckerMock = new Mock<ServiceHealthChecker>(httpClient, healthCheckerLogger.Object);
+            _healthCheckerMock = new Mock<IServiceHealthChecker>();
             _loggerMock = new Mock<ILogger<StatusMonitorService>>();
             _statusMonitorService = new StatusMonitorService(_healthCheckerMock.Object, _loggerMock.Object);
         }
