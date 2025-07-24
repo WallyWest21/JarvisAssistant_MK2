@@ -76,8 +76,8 @@
         </Grid.Background>
 
         <!-- Main Content -->
-        <ScrollView HorizontalOptions="Center">
-            <VerticalStackLayout Padding="40,60" Spacing="40" HorizontalOptions="CenterAndExpand">
+        <ScrollView HorizontalOptions="Center" >
+            <VerticalStackLayout Padding="40,60" Spacing="40" HorizontalOptions="CenterAndExpand"  >
                 
                 <!-- Main Logo/Icon -->
                 <Border BackgroundColor="Transparent"
