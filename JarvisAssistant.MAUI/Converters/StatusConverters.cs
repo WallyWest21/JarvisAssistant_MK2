@@ -1,7 +1,7 @@
 using System.Globalization;
 using JarvisAssistant.Core.Models;
 
-namespace JarvisAssistant.MAUI.ViewModels
+namespace JarvisAssistant.MAUI.Converters
 {
     /// <summary>
     /// Converts ServiceState to color for status indicators.
@@ -104,30 +104,6 @@ namespace JarvisAssistant.MAUI.ViewModels
         public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
             throw new NotImplementedException();
-        }
-    }
-
-    /// <summary>
-    /// Converts boolean to inverted boolean.
-    /// </summary>
-    public class InvertedBoolConverter : IValueConverter
-    {
-        public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
-        {
-            if (value is bool boolValue)
-            {
-                return !boolValue;
-            }
-            return true;
-        }
-
-        public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
-        {
-            if (value is bool boolValue)
-            {
-                return !boolValue;
-            }
-            return false;
         }
     }
 

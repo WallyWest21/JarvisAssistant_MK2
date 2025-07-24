@@ -38,20 +38,79 @@ namespace JarvisAssistant.MAUI.ViewModels
         private bool _isLoading;
 
         public StatusPanelViewModel(
-            IStatusMonitorService statusMonitorService, 
-            IDialogService dialogService,
-            ILogger<StatusPanelViewModel> logger)
+            IStatusMonitorService? statusMonitorService,
+            IDialogService? dialogService,
+            ILogger<StatusPanelViewModel>? logger)
         {
             _statusMonitorService = statusMonitorService;
             _dialogService = dialogService;
-            _logger = logger;
+            _logger = logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger<StatusPanelViewModel>.Instance;
 
-            // Subscribe to real-time status updates
-            _statusSubscription = _statusMonitorService.ServiceStatusUpdates
-                .Subscribe(OnServiceStatusUpdated);
+            _logger.LogInformation("StatusPanelViewModel constructor called");
+
+            // Add immediate test data to verify UI is working
+            System.Diagnostics.Debug.WriteLine("=== StatusPanelViewModel: Adding immediate test data ===");
+            AddImmediateTestData();
+
+            // Subscribe to real-time status updates if service is available
+            if (_statusMonitorService != null)
+            {
+                try
+                {
+                    _statusSubscription = _statusMonitorService.ServiceStatusUpdates
+                        .Subscribe(OnServiceStatusUpdated);
+                    _logger.LogInformation("Successfully subscribed to status updates");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to subscribe to status updates");
+                }
+            }
+            else
+            {
+                _logger.LogWarning("IStatusMonitorService is null - status monitoring will not be available");
+            }
 
             // Initialize with current status
             _ = Task.Run(LoadInitialStatusAsync);
+
+            // TEST: Manually test commands after a delay to see if they work
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(3000); // Wait 3 seconds
+                System.Diagnostics.Debug.WriteLine("=== MANUAL COMMAND TEST STARTING ===");
+
+                try
+                {
+                    // Test if we can call the command directly
+                    if (ToggleExpandedCommand.CanExecute(null))
+                    {
+                        System.Diagnostics.Debug.WriteLine("=== ToggleExpandedCommand.CanExecute returned TRUE ===");
+                        ToggleExpandedCommand.Execute(null);
+                        System.Diagnostics.Debug.WriteLine("=== ToggleExpandedCommand.Execute called ===");
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine("=== ToggleExpandedCommand.CanExecute returned FALSE ===");
+                    }
+
+                    // Test TestCommandCommand if available
+                    if (TestCommandCommand.CanExecute(null))
+                    {
+                        System.Diagnostics.Debug.WriteLine("=== TestCommandCommand.CanExecute returned TRUE ===");
+                        TestCommandCommand.Execute(null);
+                        System.Diagnostics.Debug.WriteLine("=== TestCommandCommand.Execute called ===");
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine("=== TestCommandCommand.CanExecute returned FALSE ===");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"=== ERROR in manual command test: {ex} ===");
+                }
+            });
         }
 
         /// <summary>
@@ -65,19 +124,29 @@ namespace JarvisAssistant.MAUI.ViewModels
             try
             {
                 IsLoading = true;
-                var statuses = await _statusMonitorService.GetAllServiceStatusesAsync();
-                
-                await MainThread.InvokeOnMainThreadAsync(() =>
+
+                if (_statusMonitorService != null)
                 {
-                    ServiceStatuses.Clear();
-                    foreach (var status in statuses.OrderBy(s => s.ServiceName))
+                    var statuses = await _statusMonitorService.GetAllServiceStatusesAsync();
+
+                    await MainThread.InvokeOnMainThreadAsync(() =>
                     {
-                        ServiceStatuses.Add(status);
-                    }
-                    
-                    UpdateOverallStatus();
-                    LastUpdated = DateTime.Now;
-                });
+                        ServiceStatuses.Clear();
+                        foreach (var status in statuses.OrderBy(s => s.ServiceName))
+                        {
+                            ServiceStatuses.Add(status);
+                        }
+
+                        UpdateOverallStatus();
+                        LastUpdated = DateTime.Now;
+                    });
+
+                    _logger.LogInformation("Refreshed {Count} service statuses", statuses.Count());
+                }
+                else
+                {
+                    _logger.LogWarning("Cannot refresh statuses - IStatusMonitorService is null");
+                }
             }
             catch (Exception ex)
             {
@@ -95,7 +164,38 @@ namespace JarvisAssistant.MAUI.ViewModels
         [RelayCommand]
         public void ToggleExpanded()
         {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine($"=== ToggleExpanded called. Current IsExpanded: {IsExpanded} ===");
+                System.Diagnostics.Debug.WriteLine($"=== Current Thread: {Thread.CurrentThread.Name ?? "Unknown"} ===");
+
+                IsExpanded = !IsExpanded;
+
+                System.Diagnostics.Debug.WriteLine($"=== ToggleExpanded completed. New IsExpanded: {IsExpanded} ===");
+                _logger.LogInformation("Status panel expanded state toggled to: {IsExpanded}", IsExpanded);
+
+                // Force property change notification
+                OnPropertyChanged(nameof(IsExpanded));
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"? ERROR in ToggleExpanded: {ex}");
+                _logger.LogError(ex, "Error in ToggleExpanded");
+            }
+        }
+
+        /// <summary>
+        /// Simple test command to verify command binding is working
+        /// </summary>
+        [RelayCommand]
+        public void TestCommand()
+        {
+            System.Diagnostics.Debug.WriteLine("?????? TEST COMMAND EXECUTED - COMMAND BINDING IS WORKING! ??????");
+            _logger.LogInformation("Test command executed successfully");
+
+            // Also test toggling IsExpanded directly
             IsExpanded = !IsExpanded;
+            System.Diagnostics.Debug.WriteLine($"Test command toggled IsExpanded to: {IsExpanded}");
         }
 
         /// <summary>
@@ -109,28 +209,35 @@ namespace JarvisAssistant.MAUI.ViewModels
             try
             {
                 var message = FormatServiceDetails(serviceStatus);
-                
-                // If service has failures, show option to reset
-                if (serviceStatus.Metrics?.TryGetValue("consecutive_failures", out var failures) == true && 
-                    Convert.ToInt32(failures) > 0)
-                {
-                    var shouldReset = await _dialogService.DisplayConfirmAsync(
-                        $"Service Details: {serviceStatus.ServiceName}",
-                        $"{message}\n\nThis service has consecutive failures. Would you like to reset the failure count and retry immediately?",
-                        "Reset & Retry",
-                        "Close");
 
-                    if (shouldReset)
+                if (_dialogService != null)
+                {
+                    // If service has failures, show option to reset
+                    if (serviceStatus.Metrics?.TryGetValue("consecutive_failures", out var failures) == true &&
+                        Convert.ToInt32(failures) > 0)
                     {
-                        await ResetServiceFailuresAsync(serviceStatus);
+                        var shouldReset = await _dialogService.DisplayConfirmAsync(
+                            $"Service Details: {serviceStatus.ServiceName}",
+                            $"{message}\n\nThis service has consecutive failures. Would you like to reset the failure count and retry immediately?",
+                            "Reset & Retry",
+                            "Close");
+
+                        if (shouldReset)
+                        {
+                            await ResetServiceFailuresAsync(serviceStatus);
+                        }
+                    }
+                    else
+                    {
+                        await _dialogService.DisplayAlertAsync(
+                            $"Service Details: {serviceStatus.ServiceName}",
+                            message,
+                            "OK");
                     }
                 }
                 else
                 {
-                    await _dialogService.DisplayAlertAsync(
-                        $"Service Details: {serviceStatus.ServiceName}",
-                        message,
-                        "OK");
+                    _logger.LogInformation("Service Details for {ServiceName}: {Details}", serviceStatus.ServiceName, message);
                 }
             }
             catch (Exception ex)
@@ -150,20 +257,35 @@ namespace JarvisAssistant.MAUI.ViewModels
             try
             {
                 IsLoading = true;
-                await _statusMonitorService.ResetServiceFailuresAsync(serviceStatus.ServiceName);
-                
-                await _dialogService.DisplayAlertAsync(
-                    "Service Reset",
-                    $"Failures reset for {serviceStatus.ServiceName}. The service will be rechecked immediately.",
-                    "OK");
+
+                if (_statusMonitorService != null)
+                {
+                    await _statusMonitorService.ResetServiceFailuresAsync(serviceStatus.ServiceName);
+
+                    if (_dialogService != null)
+                    {
+                        await _dialogService.DisplayAlertAsync(
+                            "Service Reset",
+                            $"Failures reset for {serviceStatus.ServiceName}. The service will be rechecked immediately.",
+                            "OK");
+                    }
+                }
+                else
+                {
+                    _logger.LogWarning("Cannot reset service failures - IStatusMonitorService is null");
+                }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to reset failures for {ServiceName}", serviceStatus.ServiceName);
-                await _dialogService.DisplayAlertAsync(
-                    "Error",
-                    $"Failed to reset failures for {serviceStatus.ServiceName}: {ex.Message}",
-                    "OK");
+
+                if (_dialogService != null)
+                {
+                    await _dialogService.DisplayAlertAsync(
+                        "Error",
+                        $"Failed to reset failures for {serviceStatus.ServiceName}: {ex.Message}",
+                        "OK");
+                }
             }
             finally
             {
@@ -179,12 +301,19 @@ namespace JarvisAssistant.MAUI.ViewModels
         {
             try
             {
-                // Navigate to settings page - implement based on your navigation pattern
                 _logger.LogInformation("Opening service monitoring settings");
-                await _dialogService.DisplayAlertAsync(
-                    "Settings",
-                    "Service monitoring settings will be available in a future update.",
-                    "OK");
+
+                if (_dialogService != null)
+                {
+                    await _dialogService.DisplayAlertAsync(
+                        "Settings",
+                        "Service monitoring settings will be available in a future update.",
+                        "OK");
+                }
+                else
+                {
+                    _logger.LogInformation("Settings requested but dialog service not available");
+                }
             }
             catch (Exception ex)
             {
@@ -200,11 +329,170 @@ namespace JarvisAssistant.MAUI.ViewModels
             try
             {
                 await RefreshStatusAsync();
+
+                // If no services were loaded, add some test data for debugging
+                if (!ServiceStatuses.Any())
+                {
+                    _logger.LogWarning("No services found from status monitor service. Adding test data for debugging.");
+                    await AddTestDataAsync();
+                }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to load initial service status");
+                _logger.LogError(ex, "Failed to load initial service status. Adding test data for debugging.");
+                await AddTestDataAsync();
             }
+        }
+
+        /// <summary>
+        /// Adds immediate test data in the constructor for debugging.
+        /// </summary>
+        private void AddImmediateTestData()
+        {
+            try
+            {
+                // Add test services immediately to show that the UI is working
+                var testServices = new[]
+                {
+                    new ServiceStatus("llm-engine", ServiceState.Offline)
+                    {
+                        ErrorMessage = "Connection refused",
+                        Metrics = new Dictionary<string, object>
+                        {
+                            ["error_code"] = "SRV-CONN-001",
+                            ["response_time_ms"] = 0,
+                            ["consecutive_failures"] = 3,
+                            ["platform"] = "Android",
+                            ["endpoint"] = "http://10.0.2.2:11434/api/tags"
+                        }
+                    },
+                    new ServiceStatus("vision-api", ServiceState.Offline)
+                    {
+                        ErrorMessage = "Service not found",
+                        Metrics = new Dictionary<string, object>
+                        {
+                            ["error_code"] = "HTTP-404-001",
+                            ["response_time_ms"] = 0,
+                            ["consecutive_failures"] = 1,
+                            ["platform"] = "Android",
+                            ["endpoint"] = "http://localhost:5000/health"
+                        }
+                    },
+                    new ServiceStatus("voice-service", ServiceState.Offline)
+                    {
+                        ErrorMessage = "Connection timeout",
+                        Metrics = new Dictionary<string, object>
+                        {
+                            ["error_code"] = "SRV-TIMEOUT-001",
+                            ["response_time_ms"] = 5000,
+                            ["consecutive_failures"] = 2,
+                            ["platform"] = "Android",
+                            ["endpoint"] = "http://localhost:5001/health"
+                        }
+                    },
+                    new ServiceStatus("system-health", ServiceState.Online)
+                    {
+                        Metrics = new Dictionary<string, object>
+                        {
+                            ["response_time_ms"] = 45,
+                            ["consecutive_failures"] = 0,
+                            ["platform"] = "Android",
+                            ["status_code"] = 200
+                        }
+                    }
+                };
+
+                foreach (var service in testServices)
+                {
+                    ServiceStatuses.Add(service);
+                }
+
+                UpdateOverallStatus();
+                LastUpdated = DateTime.Now;
+
+                // Debug the IsExpanded state
+                System.Diagnostics.Debug.WriteLine($"=== Initial IsExpanded state: {IsExpanded} ===");
+
+                System.Diagnostics.Debug.WriteLine($"? Added {testServices.Length} immediate test services to status panel");
+                _logger.LogInformation("Added {Count} immediate test services to status panel", testServices.Length);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"? Error adding immediate test data: {ex}");
+                _logger.LogError(ex, "Error adding immediate test data");
+            }
+        }
+
+        /// <summary>
+        /// Adds test service status data for debugging purposes.
+        /// </summary>
+        private async Task AddTestDataAsync()
+        {
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                ServiceStatuses.Clear();
+
+                // Add test services to show that the UI is working
+                var testServices = new[]
+                {
+                    new ServiceStatus("llm-engine", ServiceState.Offline)
+                    {
+                        ErrorMessage = "Connection refused",
+                        Metrics = new Dictionary<string, object>
+                        {
+                            ["error_code"] = "SRV-CONN-001",
+                            ["response_time_ms"] = 0,
+                            ["consecutive_failures"] = 3,
+                            ["platform"] = "Android",
+                            ["endpoint"] = "http://10.0.2.2:11434/api/tags"
+                        }
+                    },
+                    new ServiceStatus("vision-api", ServiceState.Offline)
+                    {
+                        ErrorMessage = "Service not found",
+                        Metrics = new Dictionary<string, object>
+                        {
+                            ["error_code"] = "HTTP-404-001",
+                            ["response_time_ms"] = 0,
+                            ["consecutive_failures"] = 1,
+                            ["platform"] = "Android",
+                            ["endpoint"] = "http://localhost:5000/health"
+                        }
+                    },
+                    new ServiceStatus("voice-service", ServiceState.Offline)
+                    {
+                        ErrorMessage = "Connection timeout",
+                        Metrics = new Dictionary<string, object>
+                        {
+                            ["error_code"] = "SRV-TIMEOUT-001",
+                            ["response_time_ms"] = 5000,
+                            ["consecutive_failures"] = 2,
+                            ["platform"] = "Android",
+                            ["endpoint"] = "http://localhost:5001/health"
+                        }
+                    },
+                    new ServiceStatus("system-health", ServiceState.Online)
+                    {
+                        Metrics = new Dictionary<string, object>
+                        {
+                            ["response_time_ms"] = 45,
+                            ["consecutive_failures"] = 0,
+                            ["platform"] = "Android",
+                            ["status_code"] = 200
+                        }
+                    }
+                };
+
+                foreach (var service in testServices)
+                {
+                    ServiceStatuses.Add(service);
+                }
+
+                UpdateOverallStatus();
+                LastUpdated = DateTime.Now;
+
+                _logger.LogInformation("Added {Count} test services to status panel", testServices.Length);
+            });
         }
 
         /// <summary>
@@ -229,7 +517,7 @@ namespace JarvisAssistant.MAUI.ViewModels
                         var insertIndex = ServiceStatuses
                             .Select((status, index) => new { status, index })
                             .FirstOrDefault(x => string.Compare(x.status.ServiceName, updatedStatus.ServiceName, StringComparison.OrdinalIgnoreCase) > 0)?.index ?? ServiceStatuses.Count;
-                        
+
                         ServiceStatuses.Insert(insertIndex, updatedStatus);
                     }
 
@@ -248,10 +536,13 @@ namespace JarvisAssistant.MAUI.ViewModels
         /// </summary>
         private void UpdateOverallStatus()
         {
+            System.Diagnostics.Debug.WriteLine($"=== UpdateOverallStatus called. ServiceStatuses count: {ServiceStatuses.Count} ===");
+
             if (!ServiceStatuses.Any())
             {
                 OverallStatus = ServiceState.Offline;
                 StatusSummary = "No services";
+                System.Diagnostics.Debug.WriteLine("=== No services found, setting status summary to 'No services' ===");
                 return;
             }
 
@@ -259,6 +550,8 @@ namespace JarvisAssistant.MAUI.ViewModels
             var onlineCount = states.Count(s => s == ServiceState.Online);
             var degradedCount = states.Count(s => s == ServiceState.Degraded);
             var offlineCount = states.Count(s => s == ServiceState.Offline || s == ServiceState.Error);
+
+            System.Diagnostics.Debug.WriteLine($"=== Service counts - Online: {onlineCount}, Degraded: {degradedCount}, Offline: {offlineCount} ===");
 
             // Determine overall status
             if (offlineCount > 0)
@@ -276,6 +569,8 @@ namespace JarvisAssistant.MAUI.ViewModels
                 OverallStatus = ServiceState.Online;
                 StatusSummary = $"All {onlineCount} services online";
             }
+
+            System.Diagnostics.Debug.WriteLine($"=== Final status summary: '{StatusSummary}', Overall status: {OverallStatus} ===");
         }
 
         /// <summary>

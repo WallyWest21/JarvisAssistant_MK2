@@ -177,7 +177,6 @@
         <views:StatusPanelView x:Name="StatusPanel"
                                VerticalOptions="Fill"
                                HorizontalOptions="Fill"
-                               BackgroundColor="Transparent"
-                               InputTransparent="True" />
+                               BackgroundColor="Transparent" />
     </Grid>
 </ContentPage>

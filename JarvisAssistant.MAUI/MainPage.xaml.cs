@@ -1,6 +1,7 @@
 ﻿using JarvisAssistant.MAUI.Views;
 using JarvisAssistant.MAUI.ViewModels;
 using JarvisAssistant.Core.Interfaces;
+using JarvisAssistant.Services.Extensions;
 using Microsoft.Extensions.Logging;
 
 namespace JarvisAssistant.MAUI;
@@ -29,6 +30,22 @@ public partial class MainPage : ContentPage
             if (statusPanelViewModel != null && StatusPanel != null)
             {
                 StatusPanel.BindingContext = statusPanelViewModel;
+                System.Diagnostics.Debug.WriteLine("✅ StatusPanel BindingContext set to StatusPanelViewModel");
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"⚠️ StatusPanelViewModel or StatusPanel is null. ViewModel: {statusPanelViewModel != null}, Panel: {StatusPanel != null}");
+                
+                // Create a fallback ViewModel if DI isn't working
+                if (StatusPanel != null && statusPanelViewModel == null)
+                {
+                    var fallbackLogger = services?.GetService(typeof(ILogger<StatusPanelViewModel>)) as ILogger<StatusPanelViewModel>;
+                    var dialogService = services?.GetService(typeof(IDialogService)) as IDialogService;
+                    
+                    statusPanelViewModel = new StatusPanelViewModel(_statusMonitorService, dialogService, fallbackLogger);
+                    StatusPanel.BindingContext = statusPanelViewModel;
+                    System.Diagnostics.Debug.WriteLine("✅ Created fallback StatusPanelViewModel");
+                }
             }
             
             System.Diagnostics.Debug.WriteLine("✅ Services initialized");
@@ -64,6 +81,19 @@ public partial class MainPage : ContentPage
                 // Start monitoring all registered services
                 await _statusMonitorService.StartMonitoringAllAsync();
                 _logger?.LogInformation("Status monitoring started");
+            }
+            
+            // Also setup status monitoring if available
+            var services = Application.Current?.Handler?.MauiContext?.Services;
+            var statusSetup = services?.GetService(typeof(IStatusMonitoringSetup)) as IStatusMonitoringSetup;
+            if (statusSetup != null)
+            {
+                await statusSetup.SetupAsync();
+                _logger?.LogInformation("Status monitoring setup completed");
+            }
+            else
+            {
+                _logger?.LogWarning("IStatusMonitoringSetup service not found");
             }
         }
         catch (Exception ex)

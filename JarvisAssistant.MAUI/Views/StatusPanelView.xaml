@@ -23,10 +23,10 @@
             <x:Double x:Key="StatusChangeAnimationDuration">300</x:Double>
             
             <!-- Converters -->
-            <viewmodels:ServiceStateToColorConverter x:Key="StateToColorConverter" />
-            <viewmodels:ServiceStateToIconConverter x:Key="StateToIconConverter" />
-            <viewmodels:ResponseTimeToTextConverter x:Key="ResponseTimeToTextConverter" />
-            <viewmodels:BoolToOpacityConverter x:Key="BoolToOpacityConverter" />
+            <converters:ServiceStateToColorConverter x:Key="StateToColorConverter" />
+            <converters:ServiceStateToIconConverter x:Key="StateToIconConverter" />
+            <converters:ResponseTimeToTextConverter x:Key="ResponseTimeToTextConverter" />
+            <converters:BoolToOpacityConverter x:Key="BoolToOpacityConverter" />
             <converters:InvertedBoolConverter x:Key="InvertedBoolConverter" />
             
             <!-- Status Item Template -->
@@ -148,7 +148,7 @@
     </ContentView.Resources>
 
     <!-- Main Container with Platform-Specific Layouts -->
-    <Grid InputTransparent="True">
+    <Grid>
         <!-- Desktop Layout: Always Visible Sidebar -->
         <Frame x:Name="DesktopPanel"
                Style="{StaticResource DesktopPanelStyle}"
@@ -197,113 +197,134 @@
             </StackLayout>
         </Frame>
         
-        <!-- Mobile Layout: Collapsible Panel -->
-        <Grid x:Name="MobileContainer"
+        <!-- Status Bar - separate element that can capture input -->
+        <Grid VerticalOptions="Start"
+              HorizontalOptions="Fill"
+              HeightRequest="40"
+              BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray900}}"
               IsVisible="{OnPlatform Default=True, WinUI=False, MacCatalyst=False}"
-              VerticalOptions="Fill"
-              InputTransparent="False" >
+              InputTransparent="False">
             
-            <!-- Backdrop for Expanded Panel -->
-            <BoxView BackgroundColor="#80000000"
-                     IsVisible="{Binding IsExpanded}"
-                     Opacity="{Binding IsExpanded, Converter={StaticResource BoolToOpacityConverter}}">
-                <BoxView.GestureRecognizers>
-                    <TapGestureRecognizer Command="{Binding ToggleExpandedCommand}" />
-                </BoxView.GestureRecognizers>
-            </BoxView>
+            <Grid.GestureRecognizers>
+                <SwipeGestureRecognizer Direction="Down" Command="{Binding ToggleExpandedCommand}" />
+                <TapGestureRecognizer Command="{Binding ToggleExpandedCommand}" />
+            </Grid.GestureRecognizers>
             
-            <!-- Mobile Status Indicator (Always Visible) -->
-            <Grid VerticalOptions="Start"
-                  HorizontalOptions="Fill"
-                  HeightRequest="40"
-                  BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray900}}"
-                  IsVisible="{Binding IsExpanded, Converter={StaticResource InvertedBoolConverter}}">
+            <!-- Only show when not expanded -->
+            <StackLayout Orientation="Horizontal"
+                         HorizontalOptions="Center"
+                         VerticalOptions="Center"
+                         Spacing="8"
+                         IsVisible="{Binding IsExpanded, Converter={StaticResource InvertedBoolConverter}}">
                 
-                <Grid.GestureRecognizers>
-                    <SwipeGestureRecognizer Direction="Down" Command="{Binding ToggleExpandedCommand}" />
-                    <TapGestureRecognizer Command="{Binding ToggleExpandedCommand}" />
-                </Grid.GestureRecognizers>
+                <!-- Overall Status Indicator -->
+                <Ellipse Fill="{Binding OverallStatus, Converter={StaticResource StateToColorConverter}}"
+                         WidthRequest="12"
+                         HeightRequest="12" />
                 
-                <StackLayout Orientation="Horizontal"
-                             HorizontalOptions="Center"
-                             VerticalOptions="Center"
-                             Spacing="8">
-                    
-                    <!-- Overall Status Indicator -->
-                    <Ellipse Fill="{Binding OverallStatus, Converter={StaticResource StateToColorConverter}}"
-                             WidthRequest="12"
-                             HeightRequest="12" />
-                    
-                    <Label Text="{Binding StatusSummary}"
-                           FontSize="14"
-                           VerticalOptions="Center"
-                           TextColor="{AppThemeBinding Light={StaticResource Gray700}, Dark={StaticResource Gray300}}" />
-                    
-                    <!-- Expand Indicator -->
-                    <Label Text="⌄"
-                           FontSize="16"
-                           VerticalOptions="Center"
-                           TextColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray500}}" />
-                </StackLayout>
-            </Grid>
-            
-            <!-- Expanded Panel -->
-            <Frame x:Name="MobileExpandedPanel"
-                   Style="{StaticResource MobilePanelStyle}"
-                   VerticalOptions="Start"
-                   IsVisible="{Binding IsExpanded}">
+                <Label Text="{Binding StatusSummary}"
+                       FontSize="14"
+                       VerticalOptions="Center"
+                       TextColor="{AppThemeBinding Light={StaticResource Gray700}, Dark={StaticResource Gray300}}" />
                 
-                <StackLayout Spacing="12">
-                    <!-- Header with Close Button -->
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        
-                        <Label Grid.Column="0"
-                               Text="Service Status"
-                               FontSize="18"
-                               FontAttributes="Bold"
-                               VerticalOptions="Center"
-                               TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray100}}" />
-                        
-                        <Button Grid.Column="1"
-                                Text="✕"
-                                FontSize="16"
-                                WidthRequest="32"
-                                HeightRequest="32"
-                                BackgroundColor="Transparent"
-                                TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray400}}"
-                                Command="{Binding ToggleExpandedCommand}" />
-                    </Grid>
-                    
-                    <!-- Service List -->
-                    <CollectionView ItemsSource="{Binding ServiceStatuses}"
-                                    ItemTemplate="{StaticResource ServiceStatusTemplate}"
-                                    HeightRequest="280"
-                                    VerticalScrollBarVisibility="Default" />
-                    
-                    <!-- Actions -->
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        
-                        <Button Grid.Column="0"
-                                Text="Refresh All"
-                                Command="{Binding RefreshStatusCommand}"
-                                Margin="0,0,4,0" />
-                        
-                        <Button Grid.Column="1"
-                                Text="Settings"
-                                Command="{Binding OpenSettingsCommand}"
-                                Margin="4,0,0,0" />
-                    </Grid>
-                </StackLayout>
-            </Frame>
+                <!-- Expand Indicator -->
+                <Label Text="⌄"
+                       FontSize="16"
+                       VerticalOptions="Center"
+                       TextColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray500}}" />
+                <!-- Debug: Add a simple test button to verify command binding -->
+                <Button Text="Test"
+                        FontSize="10"
+                        WidthRequest="40"
+                        HeightRequest="20"
+                        BackgroundColor="Red"
+                        TextColor="White"
+                        Command="{Binding TestCommandCommand}"
+                        Clicked="OnTestButtonClicked"
+                        Margin="8,0,0,0" />
+                
+                <!-- Debug: Add toggle button to test ToggleExpandedCommand -->
+                <Button Text="Toggle"
+                        FontSize="10"
+                        WidthRequest="50"
+                        HeightRequest="20"
+                        BackgroundColor="Blue"
+                        TextColor="White"
+                        Command="{Binding ToggleExpandedCommand}"
+                        Clicked="OnToggleButtonClicked"
+                        Margin="4,0,0,0" />
+            </StackLayout>
         </Grid>
+        
+        <!-- Backdrop for Expanded Panel - MUST be after status bar but before expanded panel for proper Z-order -->
+        <BoxView BackgroundColor="#80000000"
+                 IsVisible="{Binding IsExpanded}"
+                 Opacity="{Binding IsExpanded, Converter={StaticResource BoolToOpacityConverter}}"
+                 VerticalOptions="Fill"
+                 HorizontalOptions="Fill"
+                 InputTransparent="False">
+            <BoxView.GestureRecognizers>
+                <TapGestureRecognizer Command="{Binding ToggleExpandedCommand}" />
+            </BoxView.GestureRecognizers>
+        </BoxView>
+        
+        <!-- Expanded Panel - separate element - MUST be last for proper Z-order -->
+        <Frame x:Name="MobileExpandedPanel"
+               Style="{StaticResource MobilePanelStyle}"
+               VerticalOptions="Start"
+               IsVisible="{Binding IsExpanded}"
+               InputTransparent="False">
+            
+            <StackLayout Spacing="12">
+                <!-- Header with Close Button -->
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    
+                    <Label Grid.Column="0"
+                           Text="Service Status"
+                           FontSize="18"
+                           FontAttributes="Bold"
+                           VerticalOptions="Center"
+                           TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray100}}" />
+                    
+                    <Button Grid.Column="1"
+                            Text="✕"
+                            FontSize="16"
+                            WidthRequest="32"
+                            HeightRequest="32"
+                            BackgroundColor="Transparent"
+                            TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray400}}"
+                            Command="{Binding ToggleExpandedCommand}" />
+                </Grid>
+                
+                <!-- Service List -->
+                <CollectionView ItemsSource="{Binding ServiceStatuses}"
+                                ItemTemplate="{StaticResource ServiceStatusTemplate}"
+                                HeightRequest="280"
+                                VerticalScrollBarVisibility="Default" />
+                
+                <!-- Actions -->
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    
+                    <Button Grid.Column="0"
+                            Text="Refresh All"
+                            Command="{Binding RefreshStatusCommand}"
+                            Margin="0,0,4,0" />
+                    
+                    <Button Grid.Column="1"
+                            Text="Settings"
+                            Command="{Binding OpenSettingsCommand}"
+                            Margin="4,0,0,0" />
+                </Grid>
+            </StackLayout>
+        </Frame>
         
         <!-- TV Layout: Minimal Corner Overlay -->
         <Frame x:Name="TvOverlay"
