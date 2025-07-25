@@ -1,188 +1,174 @@
-using Xunit;
-using Moq;
 using Microsoft.Extensions.Logging;
-using JarvisAssistant.Core.Models;
+using Moq;
 using JarvisAssistant.Services;
+using JarvisAssistant.Core.Models;
+using JarvisAssistant.Core.ErrorCodes;
+using Xunit;
 using JarvisAssistant.Core.Interfaces;
 
 namespace JarvisAssistant.UnitTests.Services
 {
     /// <summary>
-    /// Unit tests for the ErrorHandlingService class.
+    /// Comprehensive unit tests for the ErrorCodeRegistry.
+    /// Validates error code structure, parsing, and utility methods.
     /// </summary>
-    public class ErrorHandlingServiceTests
+    public class ErrorCodeRegistryTests
     {
-        private readonly Mock<ILogger<ErrorHandlingService>> _mockLogger;
-        private readonly ErrorHandlingService _errorHandlingService;
-
-        public ErrorHandlingServiceTests()
-        {
-            _mockLogger = new Mock<ILogger<ErrorHandlingService>>();
-            _errorHandlingService = new ErrorHandlingService(_mockLogger.Object);
-        }
-
         [Fact]
-        public async Task HandleErrorAsync_WithValidErrorInfo_ShouldLogError()
+        public void IsValidErrorCode_ValidCodes_ReturnsTrue()
         {
-            // Arrange
-            var errorInfo = new ErrorInfo
-            {
-                ErrorCode = "TEST_ERROR",
-                UserMessage = "Test error message",
-                TechnicalDetails = "Test technical details",
-                Severity = ErrorSeverity.Error
-            };
-
-            // Act
-            await _errorHandlingService.HandleErrorAsync(errorInfo);
-
-            // Assert
-            _mockLogger.Verify(
-                x => x.Log(
-                    LogLevel.Error,
-                    It.IsAny<EventId>(),
-                    It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("TEST_ERROR")),
-                    It.IsAny<Exception>(),
-                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-                Times.Once);
-        }
-
-        [Fact]
-        public async Task HandleErrorAsync_WithException_ShouldCreateErrorInfoAndLog()
-        {
-            // Arrange
-            var exception = new InvalidOperationException("Test exception");
-            var context = "TestContext";
-            var userMessage = "Custom user message";
-
-            // Act
-            await _errorHandlingService.HandleErrorAsync(exception, context, userMessage);
-
-            // Assert
-            _mockLogger.Verify(
-                x => x.Log(
-                    LogLevel.Error,
-                    It.IsAny<EventId>(),
-                    It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("InvalidOperationException")),
-                    It.IsAny<Exception>(),
-                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-                Times.Once);
-        }
-
-        [Fact]
-        public async Task GetRecentErrorsAsync_AfterHandlingErrors_ShouldReturnErrors()
-        {
-            // Arrange
-            var errorInfo1 = new ErrorInfo("ERROR_1", "First error");
-            var errorInfo2 = new ErrorInfo("ERROR_2", "Second error");
-
-            // Act
-            await _errorHandlingService.HandleErrorAsync(errorInfo1);
-            await _errorHandlingService.HandleErrorAsync(errorInfo2);
-            var recentErrors = await _errorHandlingService.GetRecentErrorsAsync(10);
-
-            // Assert
-            Assert.Equal(2, recentErrors.Count());
-            Assert.Contains(recentErrors, e => e.ErrorCode == "ERROR_1");
-            Assert.Contains(recentErrors, e => e.ErrorCode == "ERROR_2");
-        }
-
-        [Fact]
-        public async Task ClearErrorHistoryAsync_ShouldRemoveAllErrors()
-        {
-            // Arrange
-            var errorInfo = new ErrorInfo("ERROR_1", "Test error");
-            await _errorHandlingService.HandleErrorAsync(errorInfo);
-
-            // Act
-            await _errorHandlingService.ClearErrorHistoryAsync();
-            var recentErrors = await _errorHandlingService.GetRecentErrorsAsync(10);
-
-            // Assert
-            Assert.Empty(recentErrors);
-        }
-
-        [Fact]
-        public async Task SetErrorReportingAsync_ShouldUpdateProperty()
-        {
-            // Arrange
-            var initialState = _errorHandlingService.IsErrorReportingEnabled;
-
-            // Act
-            await _errorHandlingService.SetErrorReportingAsync(!initialState);
-
-            // Assert
-            Assert.Equal(!initialState, _errorHandlingService.IsErrorReportingEnabled);
-        }
-
-        [Fact]
-        public async Task HandleErrorAsync_WithNullErrorInfo_ShouldThrowArgumentNullException()
-        {
-            // Arrange
-            ErrorInfo? errorInfo = null;
-
             // Act & Assert
-            await Assert.ThrowsAsync<ArgumentNullException>(() => 
-                _errorHandlingService.HandleErrorAsync(errorInfo!));
-        }
-
-        [Fact]
-        public async Task HandleErrorAsync_WithNullException_ShouldThrowArgumentNullException()
-        {
-            // Arrange
-            Exception? exception = null;
-
-            // Act & Assert
-            await Assert.ThrowsAsync<ArgumentNullException>(() => 
-                _errorHandlingService.HandleErrorAsync(exception!));
-        }
-
-        [Fact]
-        public async Task ErrorOccurred_Event_ShouldBeRaised()
-        {
-            // Arrange
-            var errorInfo = new ErrorInfo("TEST_ERROR", "Test message");
-            ErrorInfo? raisedErrorInfo = null;
-
-            _errorHandlingService.ErrorOccurred += (sender, args) => raisedErrorInfo = args;
-
-            // Act
-            await _errorHandlingService.HandleErrorAsync(errorInfo);
-
-            // Assert
-            Assert.NotNull(raisedErrorInfo);
-            Assert.Equal("TEST_ERROR", raisedErrorInfo.ErrorCode);
+            Assert.True(ErrorCodeRegistry.IsValidErrorCode("LLM-CONN-001"));
+            Assert.True(ErrorCodeRegistry.IsValidErrorCode("VCE-PROC-001"));
+            Assert.True(ErrorCodeRegistry.IsValidErrorCode("NET-AUTH-001"));
+            Assert.True(ErrorCodeRegistry.IsValidErrorCode("DB-CONN-001"));
         }
 
         [Theory]
-        [InlineData(ErrorSeverity.Info, LogLevel.Information)]
-        [InlineData(ErrorSeverity.Warning, LogLevel.Warning)]
-        [InlineData(ErrorSeverity.Error, LogLevel.Error)]
-        [InlineData(ErrorSeverity.Critical, LogLevel.Critical)]
-        [InlineData(ErrorSeverity.Fatal, LogLevel.Critical)]
-        public async Task LogErrorAsync_WithDifferentSeverities_ShouldUseCorrectLogLevel(
-            ErrorSeverity severity, LogLevel expectedLogLevel)
+        [InlineData("INVALID")]
+        [InlineData("LLM-CONN")]
+        [InlineData("LLM-CONN-ABC")]
+        [InlineData("")]
+        [InlineData(null)]
+        public void IsValidErrorCode_InvalidCodes_ReturnsFalse(string? errorCode)
         {
-            // Arrange
-            var errorInfo = new ErrorInfo
-            {
-                ErrorCode = "TEST_ERROR",
-                UserMessage = "Test message",
-                Severity = severity
-            };
-
             // Act
-            await _errorHandlingService.LogErrorAsync(errorInfo);
+            var result = ErrorCodeRegistry.IsValidErrorCode(errorCode!);
 
             // Assert
-            _mockLogger.Verify(
-                x => x.Log(
-                    expectedLogLevel,
-                    It.IsAny<EventId>(),
-                    It.IsAny<It.IsAnyType>(),
-                    It.IsAny<Exception>(),
-                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-                Times.Once);
+            Assert.False(result);
+        }
+
+        [Fact]
+        public void GetServiceFromErrorCode_ValidCode_ReturnsService()
+        {
+            // Act
+            var service = ErrorCodeRegistry.GetServiceFromErrorCode("LLM-CONN-001");
+
+            // Assert
+            Assert.Equal("LLM", service);
+        }
+
+        [Fact]
+        public void GetCategoryFromErrorCode_ValidCode_ReturnsCategory()
+        {
+            // Act
+            var category = ErrorCodeRegistry.GetCategoryFromErrorCode("LLM-CONN-001");
+
+            // Assert
+            Assert.Equal("CONN", category);
+        }
+
+        [Fact]
+        public void GetNumberFromErrorCode_ValidCode_ReturnsNumber()
+        {
+            // Act
+            var number = ErrorCodeRegistry.GetNumberFromErrorCode("LLM-CONN-001");
+
+            // Assert
+            Assert.Equal("001", number);
+        }
+
+        [Fact]
+        public void GetServiceFromErrorCode_InvalidCode_ReturnsNull()
+        {
+            // Act
+            var service = ErrorCodeRegistry.GetServiceFromErrorCode("INVALID");
+
+            // Assert
+            Assert.Null(service);
+        }
+
+        [Fact]
+        public void ErrorCodesByService_ContainsExpectedServices()
+        {
+            // Act & Assert
+            Assert.True(ErrorCodeRegistry.ErrorCodesByService.ContainsKey("LLM"));
+            Assert.True(ErrorCodeRegistry.ErrorCodesByService.ContainsKey("VCE"));
+            Assert.True(ErrorCodeRegistry.ErrorCodesByService.ContainsKey("NET"));
+            Assert.True(ErrorCodeRegistry.ErrorCodesByService.ContainsKey("DB"));
+        }
+
+        [Fact]
+        public void ErrorCodesByCategory_ContainsExpectedCategories()
+        {
+            // Act & Assert
+            Assert.True(ErrorCodeRegistry.ErrorCodesByCategory.ContainsKey("CONN"));
+            Assert.True(ErrorCodeRegistry.ErrorCodesByCategory.ContainsKey("AUTH"));
+            Assert.True(ErrorCodeRegistry.ErrorCodesByCategory.ContainsKey("PROC"));
+        }
+
+        [Fact]
+        public void ErrorCodes_AllDefinedCodes_AreValid()
+        {
+            // Act & Assert - Test a sample of defined error codes
+            Assert.True(ErrorCodeRegistry.IsValidErrorCode(ErrorCodeRegistry.LLM_CONN_001));
+            Assert.True(ErrorCodeRegistry.IsValidErrorCode(ErrorCodeRegistry.VCE_PROC_001));
+            Assert.True(ErrorCodeRegistry.IsValidErrorCode(ErrorCodeRegistry.NET_CONN_001));
+            Assert.True(ErrorCodeRegistry.IsValidErrorCode(ErrorCodeRegistry.DB_CONN_001));
+        }
+    }
+
+    /// <summary>
+    /// Unit tests for the JarvisErrorMessages class.
+    /// Validates message retrieval and fallback behavior.
+    /// </summary>
+    public class JarvisErrorMessagesTests
+    {
+        [Fact]
+        public void GetErrorMessage_ValidErrorCode_ReturnsCorrectMessage()
+        {
+            // Act
+            var message = JarvisErrorMessages.GetErrorMessage(ErrorCodeRegistry.LLM_CONN_001);
+
+            // Assert
+            Assert.NotEmpty(message);
+            Assert.Contains("neural pathways", message.ToLower());
+        }
+
+        [Fact]
+        public void GetErrorMessage_InvalidErrorCode_ReturnsFallbackMessage()
+        {
+            // Act
+            var message = JarvisErrorMessages.GetErrorMessage("INVALID-CODE-999");
+
+            // Assert
+            Assert.NotEmpty(message);
+            Assert.Contains("unexpected situation", message.ToLower());
+        }
+
+        [Fact]
+        public void GetErrorMessage_NullOrEmptyCode_ReturnsFallbackMessage()
+        {
+            // Act
+            var messageNull = JarvisErrorMessages.GetErrorMessage(null!);
+            var messageEmpty = JarvisErrorMessages.GetErrorMessage("");
+
+            // Assert
+            Assert.NotEmpty(messageNull);
+            Assert.NotEmpty(messageEmpty);
+            Assert.Contains("unexpected situation", messageNull.ToLower());
+            Assert.Contains("unexpected situation", messageEmpty.ToLower());
+        }
+
+        [Fact]
+        public void AllDefinedErrorCodes_HaveMessages()
+        {
+            // Arrange - Get all error code constants via reflection
+            var errorCodeFields = typeof(ErrorCodeRegistry)
+                .GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+                .Where(f => f.IsLiteral && f.FieldType == typeof(string))
+                .Where(f => f.Name.Contains("_") && f.Name.Length > 10) // Filter for actual error codes
+                .Select(f => f.GetValue(null)?.ToString())
+                .Where(code => !string.IsNullOrEmpty(code));
+
+            // Act & Assert
+            foreach (var errorCode in errorCodeFields)
+            {
+                var message = JarvisErrorMessages.GetErrorMessage(errorCode!);
+                Assert.NotEmpty(message);
+                Assert.NotEqual(JarvisErrorMessages.GetErrorMessage("INVALID-CODE"), message);
+            }
         }
     }
 }

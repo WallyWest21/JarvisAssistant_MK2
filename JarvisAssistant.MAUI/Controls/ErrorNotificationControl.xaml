@@ -1,0 +1,255 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:models="clr-namespace:JarvisAssistant.MAUI.Models"
+             x:Class="JarvisAssistant.MAUI.Controls.ErrorNotificationControl"
+             x:Name="RootContentView">
+
+    <ContentView.Resources>
+        <Style x:Key="JarvisCardStyle" TargetType="Border">
+            <Setter Property="BackgroundColor" Value="#1A0D2E" />
+            <Setter Property="Stroke" Value="#6A4C93" />
+            <Setter Property="StrokeThickness" Value="1" />
+            <Setter Property="StrokeShape" Value="RoundRectangle 8" />
+            <Setter Property="Padding" Value="16" />
+            <Setter Property="Margin" Value="8" />
+            <Setter Property="Shadow">
+                <Setter.Value>
+                    <Shadow Brush="#40000000" Offset="0,4" Radius="8" Opacity="0.5" />
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="JarvisErrorCardStyle" TargetType="Border" BasedOn="{StaticResource JarvisCardStyle}">
+            <Setter Property="BackgroundColor" Value="#2D1810" />
+            <Setter Property="Stroke" Value="#D4593A" />
+        </Style>
+
+        <Style x:Key="JarvisWarningCardStyle" TargetType="Border" BasedOn="{StaticResource JarvisCardStyle}">
+            <Setter Property="BackgroundColor" Value="#2D2410" />
+            <Setter Property="Stroke" Value="#E6B800" />
+        </Style>
+
+        <Style x:Key="JarvisInfoCardStyle" TargetType="Border" BasedOn="{StaticResource JarvisCardStyle}">
+            <Setter Property="BackgroundColor" Value="#102D2D" />
+            <Setter Property="Stroke" Value="#3A93D4" />
+        </Style>
+
+        <Style x:Key="JarvisSuccessCardStyle" TargetType="Border" BasedOn="{StaticResource JarvisCardStyle}">
+            <Setter Property="BackgroundColor" Value="#1A2D10" />
+            <Setter Property="Stroke" Value="#4CAF50" />
+        </Style>
+
+        <Style x:Key="JarvisTitleStyle" TargetType="Label">
+            <Setter Property="FontFamily" Value="OpenSansSemibold" />
+            <Setter Property="FontSize" Value="16" />
+            <Setter Property="TextColor" Value="#E8E8E8" />
+            <Setter Property="Margin" Value="0,0,0,8" />
+        </Style>
+
+        <Style x:Key="JarvisMessageStyle" TargetType="Label">
+            <Setter Property="FontFamily" Value="OpenSansRegular" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="TextColor" Value="#B8B8B8" />
+            <Setter Property="LineBreakMode" Value="WordWrap" />
+        </Style>
+
+        <Style x:Key="JarvisButtonStyle" TargetType="Button">
+            <Setter Property="BackgroundColor" Value="#6A4C93" />
+            <Setter Property="TextColor" Value="White" />
+            <Setter Property="FontFamily" Value="OpenSansSemibold" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Padding" Value="12,6" />
+            <Setter Property="Margin" Value="4,0" />
+            <Setter Property="CornerRadius" Value="6" />
+        </Style>
+
+        <Style x:Key="JarvisDismissButtonStyle" TargetType="Button" BasedOn="{StaticResource JarvisButtonStyle}">
+            <Setter Property="BackgroundColor" Value="Transparent" />
+            <Setter Property="TextColor" Value="#999999" />
+            <Setter Property="BorderColor" Value="#666666" />
+            <Setter Property="BorderWidth" Value="1" />
+        </Style>
+
+        <!-- Data template for different notification types -->
+        <DataTemplate x:Key="ToastNotificationTemplate" x:DataType="models:ErrorNotification">
+            <Border Style="{StaticResource JarvisCardStyle}"
+                    MaximumWidthRequest="400"
+                    HorizontalOptions="End"
+                    VerticalOptions="Start"
+                    Opacity="0.95">
+                <Border.Triggers>
+                    <DataTrigger TargetType="Border" Binding="{Binding ErrorInfo.Severity}" Value="Error">
+                        <Setter Property="Style" Value="{StaticResource JarvisErrorCardStyle}" />
+                    </DataTrigger>
+                    <DataTrigger TargetType="Border" Binding="{Binding ErrorInfo.Severity}" Value="Warning">
+                        <Setter Property="Style" Value="{StaticResource JarvisWarningCardStyle}" />
+                    </DataTrigger>
+                    <DataTrigger TargetType="Border" Binding="{Binding ErrorInfo.Severity}" Value="Information">
+                        <Setter Property="Style" Value="{StaticResource JarvisInfoCardStyle}" />
+                    </DataTrigger>
+                </Border.Triggers>
+
+                <Grid RowDefinitions="Auto,Auto,Auto">
+                    <!-- Header with title and dismiss button -->
+                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+                        <Label Grid.Column="0" 
+                               Text="{Binding Title}" 
+                               Style="{StaticResource JarvisTitleStyle}" />
+                        <Button Grid.Column="1"
+                                Text="✕"
+                                Style="{StaticResource JarvisDismissButtonStyle}"
+                                WidthRequest="32"
+                                HeightRequest="32"
+                                Padding="0"
+                                Command="{Binding Source={x:Reference RootContentView}, Path=DismissCommand}"
+                                CommandParameter="{Binding Id}" />
+                    </Grid>
+
+                    <!-- Message -->
+                    <Label Grid.Row="1"
+                           Text="{Binding Message}"
+                           Style="{StaticResource JarvisMessageStyle}" />
+
+                    <!-- Action buttons will be handled in code-behind for now -->
+                    <StackLayout Grid.Row="2"
+                                Orientation="Horizontal"
+                                HorizontalOptions="End"
+                                Margin="0,12,0,0">
+                        <!-- Actions will be dynamically added in code-behind -->
+                    </StackLayout>
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <DataTemplate x:Key="InlineNotificationTemplate" x:DataType="models:ErrorNotification">
+            <Border Style="{StaticResource JarvisCardStyle}"
+                    Margin="0,4">
+                <Border.Triggers>
+                    <DataTrigger TargetType="Border" Binding="{Binding ErrorInfo.Severity}" Value="Error">
+                        <Setter Property="Style" Value="{StaticResource JarvisErrorCardStyle}" />
+                    </DataTrigger>
+                    <DataTrigger TargetType="Border" Binding="{Binding ErrorInfo.Severity}" Value="Warning">
+                        <Setter Property="Style" Value="{StaticResource JarvisWarningCardStyle}" />
+                    </DataTrigger>
+                    <DataTrigger TargetType="Border" Binding="{Binding ErrorInfo.Severity}" Value="Information">
+                        <Setter Property="Style" Value="{StaticResource JarvisInfoCardStyle}" />
+                    </DataTrigger>
+                </Border.Triggers>
+
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                    <!-- Status Icon -->
+                    <Label Grid.Column="0"
+                           Text="•"
+                           FontSize="20"
+                           TextColor="#6A4C93"
+                           VerticalOptions="Center"
+                           Margin="0,0,12,0" />
+
+                    <!-- Content -->
+                    <StackLayout Grid.Column="1" Spacing="4">
+                        <Label Text="{Binding Title}"
+                               Style="{StaticResource JarvisTitleStyle}" />
+                        <Label Text="{Binding Message}"
+                               Style="{StaticResource JarvisMessageStyle}" />
+                    </StackLayout>
+
+                    <!-- Dismiss Button -->
+                    <Button Grid.Column="2"
+                            Text="✕"
+                            Style="{StaticResource JarvisDismissButtonStyle}"
+                            WidthRequest="28"
+                            HeightRequest="28"
+                            Padding="0"
+                            FontSize="12"
+                            Command="{Binding Source={x:Reference RootContentView}, Path=DismissCommand}"
+                            CommandParameter="{Binding Id}"
+                            VerticalOptions="Start" />
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <DataTemplate x:Key="StatusBarNotificationTemplate" x:DataType="models:ErrorNotification">
+            <Grid ColumnDefinitions="Auto,*,Auto"
+                  Padding="8,4"
+                  BackgroundColor="#1A1A1A">
+                <Label Grid.Column="0"
+                       Text="ℹ"
+                       FontSize="14"
+                       TextColor="#6A4C93"
+                       VerticalOptions="Center"
+                       Margin="0,0,8,0" />
+
+                <Label Grid.Column="1"
+                       Text="{Binding Message}"
+                       FontFamily="OpenSansRegular"
+                       FontSize="12"
+                       TextColor="#CCCCCC"
+                       VerticalOptions="Center"
+                       LineBreakMode="TailTruncation" />
+
+                <Button Grid.Column="2"
+                        Text="✕"
+                        FontSize="10"
+                        TextColor="#999999"
+                        BackgroundColor="Transparent"
+                        WidthRequest="20"
+                        HeightRequest="20"
+                        Padding="0"
+                        Command="{Binding Source={x:Reference RootContentView}, Path=DismissCommand}"
+                        CommandParameter="{Binding Id}" />
+            </Grid>
+        </DataTemplate>
+
+        <DataTemplate x:Key="BannerNotificationTemplate" x:DataType="models:ErrorNotification">
+            <Border BackgroundColor="#2D1810"
+                    Stroke="#D4593A"
+                    StrokeThickness="0,0,0,2"
+                    Padding="16,12">
+                <Border.Triggers>
+                    <DataTrigger TargetType="Border" Binding="{Binding ErrorInfo.Severity}" Value="Warning">
+                        <Setter Property="BackgroundColor" Value="#2D2410" />
+                        <Setter Property="Stroke" Value="#E6B800" />
+                    </DataTrigger>
+                    <DataTrigger TargetType="Border" Binding="{Binding ErrorInfo.Severity}" Value="Information">
+                        <Setter Property="BackgroundColor" Value="#102D2D" />
+                        <Setter Property="Stroke" Value="#3A93D4" />
+                    </DataTrigger>
+                </Border.Triggers>
+
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                    <Label Grid.Column="0"
+                           Text="⚠"
+                           FontSize="18"
+                           TextColor="#E6B800"
+                           VerticalOptions="Center"
+                           Margin="0,0,12,0" />
+
+                    <StackLayout Grid.Column="1" Spacing="2">
+                        <Label Text="{Binding Title}"
+                               Style="{StaticResource JarvisTitleStyle}"
+                               FontSize="14"
+                               Margin="0" />
+                        <Label Text="{Binding Message}"
+                               Style="{StaticResource JarvisMessageStyle}"
+                               FontSize="13" />
+                    </StackLayout>
+
+                    <Button Grid.Column="2"
+                            Text="✕"
+                            Style="{StaticResource JarvisDismissButtonStyle}"
+                            WidthRequest="30"
+                            HeightRequest="30"
+                            Padding="0"
+                            FontSize="12"
+                            Command="{Binding Source={x:Reference RootContentView}, Path=DismissCommand}"
+                            CommandParameter="{Binding Id}" />
+                </Grid>
+            </Border>
+        </DataTemplate>
+    </ContentView.Resources>
+
+    <!-- Main container that will be populated based on notification type -->
+    <ContentPresenter x:Name="NotificationPresenter" />
+
+</ContentView>
