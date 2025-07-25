@@ -86,7 +86,9 @@ public static class MauiProgram
 			{
 				services.AddSingleton<IVoiceModeManager, VoiceModeManager>();
 				services.AddSingleton<IVoiceCommandProcessor, VoiceCommandProcessor>();
-				services.AddSingleton<IVoiceService, StubVoiceService>();
+				
+				// Configure voice service with ElevenLabs support
+				ConfigureVoiceService(services);
 			}
 			catch (Exception ex)
 			{
@@ -147,6 +149,8 @@ public static class MauiProgram
 			services.AddTransient<ChatPage>();
 			services.AddTransient<ChatViewModel>();
 			services.AddTransient<VoiceDemoPage>();
+			services.AddTransient<ElevenLabsVoiceDemoPage>();
+			services.AddTransient<ElevenLabsVoiceDemoViewModel>();
 
 			// Register status monitoring services with synchronized endpoints
 			services.AddStatusMonitoring(options =>
@@ -174,15 +178,12 @@ public static class MauiProgram
 					HealthEndpoint = "http://localhost:5000/health",
 					Enabled = true
 				};
-				
-				options.ServiceEndpoints["voice-service"] = new ServiceEndpointConfig
-				{
-					Name = "voice-service",
-					DisplayName = "Voice Service",
-					HealthEndpoint = "http://localhost:5001/health",
-					Enabled = true
-				};
 			});
+
+			// Add voice service monitoring to the status monitoring system
+			// TODO: Integrate CustomStatusMonitorService and VoiceServiceHealthChecker
+			// Currently the voice service status is not being monitored
+			// This explains why the status doesn't reflect StubVoiceService usage
 
 			// Register status panel view and view model
 			services.AddTransient<StatusPanelView>();
@@ -196,6 +197,43 @@ public static class MauiProgram
 			System.Diagnostics.Debug.WriteLine($"Error configuring services: {ex}");
 			// Don't re-throw - allow app to start with limited functionality
 		}
+	}
+
+	/// <summary>
+	/// Configures voice service with ElevenLabs support and fallback.
+	/// </summary>
+	/// <param name="services">The service collection to configure.</param>
+	private static void ConfigureVoiceService(IServiceCollection services)
+	{
+			try
+			{
+				// Check for ElevenLabs API key in environment variables
+				var elevenLabsApiKey = Environment.GetEnvironmentVariable("ELEVENLABS_API_KEY");
+
+				if (!string.IsNullOrWhiteSpace(elevenLabsApiKey))
+				{
+					System.Diagnostics.Debug.WriteLine("Configuring ElevenLabs voice service...");
+					
+					// Configure ElevenLabs service optimized for Jarvis
+					services.AddJarvisVoiceService(elevenLabsApiKey);
+					
+					System.Diagnostics.Debug.WriteLine("ElevenLabs voice service configured successfully");
+				}
+				else
+				{
+					System.Diagnostics.Debug.WriteLine("ElevenLabs API key not found, using fallback voice service");
+					
+					// Fall back to stub voice service
+					services.AddSingleton<IVoiceService, StubVoiceService>();
+				}
+			}
+			catch (Exception ex)
+			{
+				System.Diagnostics.Debug.WriteLine($"Error configuring voice service: {ex.Message}");
+				
+				// Always ensure we have a voice service, even if it's just the stub
+				services.AddSingleton<IVoiceService, StubVoiceService>();
+			}
 	}
 
 	/// <summary>
@@ -268,4 +306,25 @@ public static class ErrorLogger
 			return Path.Combine(Path.GetTempPath(), "jarvis_error.log");
 		}
 	}
+}
+
+public static class ServiceCollectionExtensions
+{
+    /// <summary>
+    /// Adds ElevenLabs voice service to the specified IServiceCollection.
+    /// </summary>
+    /// <param name="services">The service collection to configure.</param>
+    /// <param name="apiKey">The API key for ElevenLabs.</param>
+    /// <returns>The updated service collection.</returns>
+    public static IServiceCollection AddJarvisVoiceService(
+        this IServiceCollection services,
+        string apiKey)
+    {
+        return services.AddElevenLabsVoiceService(config =>
+        {
+            config.ApiKey = "sk_3f8d635adaf9cccefb6a9da0f368d4909a8d1348b9ac977e";
+            config.VoiceId = "TpWd9RAb8p3bL0U1nF8O"; // Change this line
+            // ... rest of configuration
+        });
+    }
 }

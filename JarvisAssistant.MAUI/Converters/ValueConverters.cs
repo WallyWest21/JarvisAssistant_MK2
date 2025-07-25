@@ -6,19 +6,6 @@ using JarvisAssistant.Core.Converters;
 
 namespace JarvisAssistant.MAUI.Converters
 {
-    public class InvertedBoolConverter : IValueConverter
-    {
-        public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
-        {
-            return ConverterLogic.InvertBool(value as bool?);
-        }
-
-        public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
-        {
-            return ConverterLogic.InvertBool(value as bool?);
-        }
-    }
-
     public class BoolToColorConverter : IValueConverter
     {
         public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)

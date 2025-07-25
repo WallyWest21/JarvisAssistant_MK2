@@ -1,4 +1,5 @@
 using JarvisAssistant.Core.Interfaces;
+using System.Runtime.CompilerServices;
 
 namespace JarvisAssistant.Services
 {
@@ -14,14 +15,13 @@ namespace JarvisAssistant.Services
             // Simulate speech generation delay
             await Task.Delay(200, cancellationToken);
             
-            // Return dummy audio data (in a real implementation, this would be actual audio)
-            var dummyAudio = new byte[1024];
-            new Random().NextBytes(dummyAudio);
-            return dummyAudio;
+            // Generate a simple audible tone instead of random noise for testing
+            return GenerateTestTone(text.Length * 100 + 2000); // Duration based on text length
         }
 
         /// <inheritdoc/>
-        public async IAsyncEnumerable<byte[]> StreamSpeechAsync(string text, string? voiceId = null, CancellationToken cancellationToken = default)
+        public async IAsyncEnumerable<byte[]> StreamSpeechAsync(string text, string? voiceId = null, 
+            [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             // Simulate streaming speech generation
             var chunks = text.Length / 10 + 1;
@@ -33,8 +33,8 @@ namespace JarvisAssistant.Services
                 
                 await Task.Delay(50, cancellationToken);
                 
-                var chunk = new byte[128];
-                new Random().NextBytes(chunk);
+                // Generate a short tone chunk instead of random noise
+                var chunk = GenerateTestTone(200); // 200ms tone chunks
                 yield return chunk;
             }
         }
@@ -60,6 +60,35 @@ namespace JarvisAssistant.Services
             
             var random = new Random();
             return sampleCommands[random.Next(sampleCommands.Length)];
+        }
+
+        /// <summary>
+        /// Generates a simple audible test tone instead of random noise.
+        /// </summary>
+        /// <param name="durationMs">Duration in milliseconds</param>
+        /// <returns>PCM audio data for a simple tone</returns>
+        private static byte[] GenerateTestTone(int durationMs = 2000)
+        {
+            const int sampleRate = 16000; // 16kHz
+            const double frequency = 440.0; // A4 note
+            const short amplitude = 8000; // Volume level
+            
+            int samples = (sampleRate * durationMs) / 1000;
+            var audioData = new byte[samples * 2]; // 16-bit = 2 bytes per sample
+            
+            for (int i = 0; i < samples; i++)
+            {
+                // Generate sine wave
+                double time = (double)i / sampleRate;
+                double sineWave = Math.Sin(2 * Math.PI * frequency * time);
+                short sample = (short)(sineWave * amplitude);
+                
+                // Convert to bytes (little-endian)
+                audioData[i * 2] = (byte)(sample & 0xFF);
+                audioData[i * 2 + 1] = (byte)((sample >> 8) & 0xFF);
+            }
+            
+            return audioData;
         }
     }
 }

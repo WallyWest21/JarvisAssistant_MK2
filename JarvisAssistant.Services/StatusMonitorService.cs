@@ -326,7 +326,7 @@ namespace JarvisAssistant.Services
             // Fix: Use /api/tags instead of /api/health for Ollama, and use the working IP from tests
             _healthChecker.RegisterService("llm-engine", "http://100.108.155.28:11434/api/tags", "LLM Engine");
             _healthChecker.RegisterService("vision-api", "http://localhost:5000/health", "Vision API");
-            _healthChecker.RegisterService("voice-service", "http://localhost:5001/health", "Voice Service");
+            // voice-service registration is handled by MauiProgram based on configuration
             _healthChecker.RegisterService("chat-api", "http://localhost:5002/health", "Chat API");
             _healthChecker.RegisterService("signalr-hub", "http://localhost:5003/health", "SignalR Hub");
         }

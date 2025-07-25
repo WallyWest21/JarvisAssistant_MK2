@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JarvisAssistant.Infrastruct
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JarvisAssistant.UnitTests", "JarvisAssistant.UnitTests\JarvisAssistant.UnitTests.csproj", "{DD46771F-65F6-4A7E-8289-758DD6475D45}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JarvisAssistant.VoiceTest", "JarvisAssistant.VoiceTest\JarvisAssistant.VoiceTest.csproj", "{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -25,6 +27,7 @@ Global
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{8073BE94-D1F0-4E2B-A87F-9E01E1C2BABA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{8073BE94-D1F0-4E2B-A87F-9E01E1C2BABA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8073BE94-D1F0-4E2B-A87F-9E01E1C2BABA}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
 		{8073BE94-D1F0-4E2B-A87F-9E01E1C2BABA}.Debug|x64.ActiveCfg = Debug|Any CPU
 		{8073BE94-D1F0-4E2B-A87F-9E01E1C2BABA}.Debug|x64.Build.0 = Debug|Any CPU
 		{8073BE94-D1F0-4E2B-A87F-9E01E1C2BABA}.Debug|x86.ActiveCfg = Debug|Any CPU
@@ -83,6 +86,18 @@ Global
 		{DD46771F-65F6-4A7E-8289-758DD6475D45}.Release|x64.Build.0 = Release|Any CPU
 		{DD46771F-65F6-4A7E-8289-758DD6475D45}.Release|x86.ActiveCfg = Release|Any CPU
 		{DD46771F-65F6-4A7E-8289-758DD6475D45}.Release|x86.Build.0 = Release|Any CPU
+		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Debug|x64.Build.0 = Debug|Any CPU
+		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Debug|x86.Build.0 = Debug|Any CPU
+		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Release|x64.ActiveCfg = Release|Any CPU
+		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Release|x64.Build.0 = Release|Any CPU
+		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Release|x86.ActiveCfg = Release|Any CPU
+		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

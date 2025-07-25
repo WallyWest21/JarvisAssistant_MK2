@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage x:Class="JarvisAssistant.MAUI.Views.ElevenLabsVoiceDemoPage"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewmodels="clr-namespace:JarvisAssistant.MAUI.ViewModels"
+             xmlns:converters="clr-namespace:JarvisAssistant.MAUI.Converters"
+             x:DataType="viewmodels:ElevenLabsVoiceDemoViewModel"
+             Title="ElevenLabs Voice Demo">
+    
+    <ContentPage.Resources>
+        <ResourceDictionary>
+            <converters:InvertedBoolConverter x:Key="InvertedBoolConverter" />
+        </ResourceDictionary>
+    </ContentPage.Resources>
+
+    <ScrollView>
+        <StackLayout Padding="20" Spacing="15">
+            
+            <!-- Status Section -->
+            <Frame BackgroundColor="LightBlue" Padding="10">
+                <StackLayout>
+                    <Label Text="Status" FontSize="18" FontAttributes="Bold" />
+                    <Label Text="{Binding StatusMessage}" FontSize="14" />
+                    <Label Text="{Binding IsElevenLabsService, StringFormat='Service Type: {0}'}" 
+                           FontSize="12" TextColor="Gray" />
+                </StackLayout>
+            </Frame>
+
+            <!-- Text Input Section -->
+            <Frame BackgroundColor="LightGray" Padding="10">
+                <StackLayout>
+                    <Label Text="Speech Text" FontSize="16" FontAttributes="Bold" />
+                    <Editor Text="{Binding TestText}" 
+                            HeightRequest="80" 
+                            Placeholder="Enter text to convert to speech..." />
+                    
+                    <!-- Quick Phrase Selection -->
+                    <Label Text="Quick Phrases:" FontSize="14" FontAttributes="Bold" Margin="0,10,0,5" />
+                    <CollectionView ItemsSource="{Binding TestPhrases}" 
+                                    SelectionMode="None"
+                                    HeightRequest="120">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Padding="5">
+                                    <Button Text="{Binding .}" 
+                                            Command="{Binding Source={RelativeSource AncestorType={x:Type viewmodels:ElevenLabsVoiceDemoViewModel}}, Path=SelectPhraseCommand}"
+                                            CommandParameter="{Binding .}"
+                                            FontSize="12"
+                                            HeightRequest="30" />
+                                </Grid>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </StackLayout>
+            </Frame>
+
+            <!-- Voice Controls Section -->
+            <Frame BackgroundColor="LightYellow" Padding="10">
+                <StackLayout>
+                    <Label Text="Voice Controls" FontSize="16" FontAttributes="Bold" />
+                    
+                    <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="10">
+                        <Button Text="Generate Speech" 
+                                Command="{Binding GenerateSpeechCommand}"
+                                IsEnabled="{Binding IsGenerating, Converter={StaticResource InvertedBoolConverter}}"
+                                Grid.Column="0" Grid.Row="0" />
+                        
+                        <Button Text="Stream Speech" 
+                                Command="{Binding StreamSpeechCommand}"
+                                IsEnabled="{Binding IsStreaming, Converter={StaticResource InvertedBoolConverter}}"
+                                Grid.Column="1" Grid.Row="0" />
+                        
+                        <Button Text="Refresh Stats" 
+                                Command="{Binding RefreshStatsCommand}"
+                                Grid.Column="0" Grid.Row="1" />
+                        
+                        <Button Text="Clear Cache" 
+                                Command="{Binding ClearCacheCommand}"
+                                Grid.Column="1" Grid.Row="1" />
+                    </Grid>
+                </StackLayout>
+            </Frame>
+
+            <!-- Emotion Test Section -->
+            <Frame BackgroundColor="LightGreen" Padding="10">
+                <StackLayout>
+                    <Label Text="Emotion Testing" FontSize="16" FontAttributes="Bold" />
+                    <Label Text="Test different emotional contexts:" FontSize="12" />
+                    
+                    <StackLayout Orientation="Horizontal" Spacing="10">
+                        <Button Text="Excited" 
+                                Command="{Binding TestEmotionCommand}" 
+                                CommandParameter="excited"
+                                FontSize="12" />
+                        <Button Text="Concerned" 
+                                Command="{Binding TestEmotionCommand}" 
+                                CommandParameter="concerned"
+                                FontSize="12" />
+                        <Button Text="Calm" 
+                                Command="{Binding TestEmotionCommand}" 
+                                CommandParameter="calm"
+                                FontSize="12" />
+                        <Button Text="Default" 
+                                Command="{Binding TestEmotionCommand}" 
+                                CommandParameter="default"
+                                FontSize="12" />
+                    </StackLayout>
+                </StackLayout>
+            </Frame>
+
+            <!-- Voice Settings Section (Only visible for ElevenLabs) -->
+            <Frame BackgroundColor="LightCoral" Padding="10" IsVisible="{Binding IsElevenLabsService}">
+                <StackLayout>
+                    <Label Text="Voice Settings" FontSize="16" FontAttributes="Bold" />
+                    
+                    <!-- Voice Selection -->
+                    <Label Text="Voice:" FontSize="14" />
+                    <Picker ItemsSource="{Binding AvailableVoices}"
+                            SelectedItem="{Binding SelectedVoiceId}"
+                            ItemDisplayBinding="{Binding DisplayText}"
+                            Title="Select Voice" />
+                    
+                    <!-- Speaking Rate -->
+                    <StackLayout Orientation="Horizontal">
+                        <Label Text="Speaking Rate:" VerticalOptions="Center" />
+                        <Slider Value="{Binding SpeakingRate}" 
+                                Minimum="0.5" Maximum="1.5" 
+                                HorizontalOptions="FillAndExpand" />
+                        <Label Text="{Binding SpeakingRate, StringFormat='{0:F2}'}" VerticalOptions="Center" />
+                    </StackLayout>
+                    
+                    <!-- Stability -->
+                    <StackLayout Orientation="Horizontal">
+                        <Label Text="Stability:" VerticalOptions="Center" />
+                        <Slider Value="{Binding Stability}" 
+                                Minimum="0.0" Maximum="1.0" 
+                                HorizontalOptions="FillAndExpand" />
+                        <Label Text="{Binding Stability, StringFormat='{0:F2}'}" VerticalOptions="Center" />
+                    </StackLayout>
+                    
+                    <!-- Similarity -->
+                    <StackLayout Orientation="Horizontal">
+                        <Label Text="Similarity:" VerticalOptions="Center" />
+                        <Slider Value="{Binding Similarity}" 
+                                Minimum="0.0" Maximum="1.0" 
+                                HorizontalOptions="FillAndExpand" />
+                        <Label Text="{Binding Similarity, StringFormat='{0:F2}'}" VerticalOptions="Center" />
+                    </StackLayout>
+                    
+                    <!-- Audio Quality -->
+                    <StackLayout Orientation="Horizontal">
+                        <Label Text="Audio Quality:" VerticalOptions="Center" />
+                        <Slider Value="{Binding AudioQuality}" 
+                                Minimum="1" Maximum="10" 
+                                HorizontalOptions="FillAndExpand" />
+                        <Label Text="{Binding AudioQuality}" VerticalOptions="Center" />
+                    </StackLayout>
+                </StackLayout>
+            </Frame>
+
+            <!-- Statistics Section -->
+            <Frame BackgroundColor="LightPink" Padding="10">
+                <StackLayout>
+                    <Label Text="Service Statistics" FontSize="16" FontAttributes="Bold" />
+                    
+                    <StackLayout Orientation="Horizontal" Spacing="15">
+                        <!-- Cache Stats -->
+                        <StackLayout HorizontalOptions="FillAndExpand">
+                            <Label Text="Cache Statistics" FontSize="14" FontAttributes="Bold" />
+                            <Label Text="{Binding CacheStats}" FontSize="10" FontFamily="Courier" />
+                        </StackLayout>
+                        
+                        <!-- Rate Limit Stats -->
+                        <StackLayout HorizontalOptions="FillAndExpand">
+                            <Label Text="Rate Limiting" FontSize="14" FontAttributes="Bold" />
+                            <Label Text="{Binding RateLimitStats}" FontSize="10" FontFamily="Courier" />
+                        </StackLayout>
+                    </StackLayout>
+                    
+                    <!-- Quota Info -->
+                    <StackLayout>
+                        <Label Text="Quota Information" FontSize="14" FontAttributes="Bold" />
+                        <Label Text="{Binding QuotaInfo}" FontSize="10" FontFamily="Courier" />
+                    </StackLayout>
+                </StackLayout>
+            </Frame>
+
+            <!-- Help Section -->
+            <Frame BackgroundColor="LightSeaGreen" Padding="10">
+                <StackLayout>
+                    <Label Text="ElevenLabs Voice Service Features" FontSize="16" FontAttributes="Bold" />
+                    <Label FontSize="12">
+                        <Label.FormattedText>
+                            <FormattedString>
+                                <Span Text="• " FontAttributes="Bold" />
+                                <Span Text="Real-time streaming audio synthesis" />
+                                <Span Text="&#10;• " FontAttributes="Bold" />
+                                <Span Text="Intelligent caching for repeated phrases" />
+                                <Span Text="&#10;• " FontAttributes="Bold" />
+                                <Span Text="Rate limiting to prevent quota exhaustion" />
+                                <Span Text="&#10;• " FontAttributes="Bold" />
+                                <Span Text="Emotional context detection and adaptation" />
+                                <Span Text="&#10;• " FontAttributes="Bold" />
+                                <Span Text="Jarvis-specific voice enhancements (SSML)" />
+                                <Span Text="&#10;• " FontAttributes="Bold" />
+                                <Span Text="Automatic fallback to local TTS" />
+                                <Span Text="&#10;• " FontAttributes="Bold" />
+                                <Span Text="British accent with professional tone" />
+                                <Span Text="&#10;• " FontAttributes="Bold" />
+                                <Span Text="Network interruption handling" />
+                            </FormattedString>
+                        </Label.FormattedText>
+                    </Label>
+                    
+                    <Label Text="Environment Setup:" FontSize="14" FontAttributes="Bold" Margin="0,10,0,0" />
+                    <Label Text="Set ELEVENLABS_API_KEY environment variable to enable ElevenLabs service." 
+                           FontSize="12" TextColor="DarkGreen" />
+                </StackLayout>
+            </Frame>
+            
+        </StackLayout>
+    </ScrollView>
+</ContentPage>

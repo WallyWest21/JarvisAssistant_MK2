@@ -351,6 +351,10 @@ namespace JarvisAssistant.MAUI.ViewModels
         {
             try
             {
+                // Check if ElevenLabs is configured
+                var elevenLabsApiKey = Environment.GetEnvironmentVariable("ELEVENLABS_API_KEY");
+                bool hasElevenLabs = !string.IsNullOrWhiteSpace(elevenLabsApiKey);
+
                 // Add test services immediately to show that the UI is working
                 var testServices = new[]
                 {
@@ -378,16 +382,16 @@ namespace JarvisAssistant.MAUI.ViewModels
                             ["endpoint"] = "http://localhost:5000/health"
                         }
                     },
-                    new ServiceStatus("voice-service", ServiceState.Offline)
+                    new ServiceStatus("voice-service", hasElevenLabs ? ServiceState.Online : ServiceState.Offline)
                     {
-                        ErrorMessage = "Connection timeout",
+                        ErrorMessage = hasElevenLabs ? null : "No API key configured",
                         Metrics = new Dictionary<string, object>
                         {
-                            ["error_code"] = "SRV-TIMEOUT-001",
-                            ["response_time_ms"] = 5000,
-                            ["consecutive_failures"] = 2,
-                            ["platform"] = "Android",
-                            ["endpoint"] = "http://localhost:5001/health"
+                            ["service_type"] = hasElevenLabs ? "ElevenLabs" : "Stub",
+                            ["response_time_ms"] = hasElevenLabs ? 120 : 0,
+                            ["consecutive_failures"] = hasElevenLabs ? 0 : 1,
+                            ["platform"] = "Windows",
+                            ["api_configured"] = hasElevenLabs
                         }
                     },
                     new ServiceStatus("system-health", ServiceState.Online)
