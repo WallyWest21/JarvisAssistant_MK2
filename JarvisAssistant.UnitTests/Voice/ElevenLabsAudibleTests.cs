@@ -21,6 +21,16 @@ namespace JarvisAssistant.UnitTests.Voice
         private readonly ITestOutputHelper _output;
         private bool _disposed = false;
 
+        // Constants for API key validation
+        private static readonly string[] PlaceholderApiKeys = 
+        {
+            "your-actual-api-key-here",
+            "your-api-key-here",
+            "placeholder",
+            "test-key",
+            "demo-key"
+        };
+
         public ElevenLabsAudibleTests(ITestOutputHelper output)
         {
             _output = output;
@@ -50,6 +60,34 @@ namespace JarvisAssistant.UnitTests.Voice
             _serviceProvider = services.BuildServiceProvider();
         }
 
+        /// <summary>
+        /// Checks if the provided API key is valid for testing.
+        /// </summary>
+        /// <param name="config">ElevenLabs configuration to validate.</param>
+        /// <returns>True if the API key is valid for testing, false otherwise.</returns>
+        private static bool IsValidApiKeyForTesting(ElevenLabsConfig config)
+        {
+            // Use the built-in validation first
+            if (!config.IsValid())
+            {
+                return false;
+            }
+
+            // Check if the API key is one of the known placeholder values
+            if (PlaceholderApiKeys.Contains(config.ApiKey, StringComparer.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            // Additional validation - real API keys should be longer than placeholders
+            if (config.ApiKey!.Length < 10)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
         [Fact]
         [Trait("Category", "Audible")]
         [Trait("Category", "Manual")]
@@ -57,10 +95,11 @@ namespace JarvisAssistant.UnitTests.Voice
         {
             // Skip if no API key is configured
             var config = _serviceProvider.GetRequiredService<ElevenLabsConfig>();
-            if (string.IsNullOrWhiteSpace(config.ApiKey) || config.ApiKey == "your-actual-api-key-here")
+            if (!IsValidApiKeyForTesting(config))
             {
                 _output.WriteLine("Skipping test - No valid ElevenLabs API key configured");
                 _output.WriteLine("Set ELEVENLABS_API_KEY environment variable or update the test configuration");
+                _output.WriteLine($"Current API key status: Valid={config.IsValid()}, Length={config.ApiKey?.Length ?? 0}");
                 return;
             }
 
@@ -74,7 +113,7 @@ namespace JarvisAssistant.UnitTests.Voice
                            If you can hear this, then the ElevenLabs integration is functioning properly.";
 
             _output.WriteLine($"Testing with text: {testText}");
-            _output.WriteLine($"Using API Key: {config.ApiKey[..8]}...");
+            _output.WriteLine($"Using API Key: {config.ApiKey![..Math.Min(8, config.ApiKey.Length)]}...");
             _output.WriteLine($"Using Voice ID: {config.VoiceId}");
 
             // Act
@@ -155,9 +194,11 @@ namespace JarvisAssistant.UnitTests.Voice
         {
             // Skip if no API key is configured
             var config = _serviceProvider.GetRequiredService<ElevenLabsConfig>();
-            if (string.IsNullOrWhiteSpace(config.ApiKey) || config.ApiKey == "your-actual-api-key-here")
+            if (!IsValidApiKeyForTesting(config))
             {
                 _output.WriteLine("Skipping streaming test - No valid ElevenLabs API key configured");
+                _output.WriteLine("Set ELEVENLABS_API_KEY environment variable or update the test configuration");
+                _output.WriteLine($"Current API key status: Valid={config.IsValid()}, Length={config.ApiKey?.Length ?? 0}");
                 return;
             }
 

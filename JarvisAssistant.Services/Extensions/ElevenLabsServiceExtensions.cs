@@ -45,18 +45,19 @@ namespace JarvisAssistant.Services.Extensions
                 client.Timeout = TimeSpan.FromSeconds(config.TimeoutSeconds);
             });
 
-            // Register fallback service (StubVoiceService)
+            // Register intelligent multi-tier fallback service (Modern Windows TTS + Legacy SAPI + Stub)
             services.AddSingleton<IVoiceService>(serviceProvider =>
             {
                 var httpClient = serviceProvider.GetRequiredService<HttpClient>();
                 var logger = serviceProvider.GetRequiredService<ILogger<ElevenLabsVoiceService>>();
                 var cacheService = serviceProvider.GetRequiredService<IAudioCacheService>();
                 var rateLimitService = serviceProvider.GetRequiredService<IRateLimitService>();
+                var fallbackLogger = serviceProvider.GetRequiredService<ILogger<IntelligentFallbackVoiceService>>();
                 
-                // Create fallback service
-                var fallbackService = new StubVoiceService();
+                // Create intelligent fallback service with multiple free TTS options
+                var fallbackService = new IntelligentFallbackVoiceService(fallbackLogger);
 
-                // Return ElevenLabs service with fallback
+                // Return ElevenLabs service with intelligent fallback
                 return new ElevenLabsVoiceService(
                     httpClient,
                     config,
@@ -179,8 +180,13 @@ namespace JarvisAssistant.Services.Extensions
             }
             else
             {
-                // No API key, use stub service only
+#if WINDOWS
+                // No API key, use Windows SAPI service (free TTS) on Windows
+                services.AddSingleton<IVoiceService, JarvisAssistant.Services.WindowsSapiVoiceService>();
+#else
+                // No API key, use stub service on non-Windows platforms
                 services.AddSingleton<IVoiceService, JarvisAssistant.Services.StubVoiceService>();
+#endif
                 return services;
             }
         }

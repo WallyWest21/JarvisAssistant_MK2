@@ -221,18 +221,30 @@ public static class MauiProgram
 				}
 				else
 				{
-					System.Diagnostics.Debug.WriteLine("ElevenLabs API key not found, using fallback voice service");
+#if WINDOWS
+					System.Diagnostics.Debug.WriteLine("ElevenLabs API key not found, using Windows SAPI voice service");
 					
-					// Fall back to stub voice service
-					services.AddSingleton<IVoiceService, StubVoiceService>();
+					// Fall back to Windows Speech Platform (free TTS) - only on Windows
+					services.AddSingleton<IVoiceService, JarvisAssistant.Services.WindowsSapiVoiceService>();
+#else
+					System.Diagnostics.Debug.WriteLine("ElevenLabs API key not found, using stub voice service");
+					
+					// Fall back to stub service on non-Windows platforms
+					services.AddSingleton<IVoiceService, JarvisAssistant.Services.StubVoiceService>();
+#endif
 				}
 			}
 			catch (Exception ex)
 			{
 				System.Diagnostics.Debug.WriteLine($"Error configuring voice service: {ex.Message}");
 				
-				// Always ensure we have a voice service, even if it's just the stub
-				services.AddSingleton<IVoiceService, StubVoiceService>();
+#if WINDOWS
+				// Always ensure we have a voice service, using Windows SAPI as fallback on Windows
+				services.AddSingleton<IVoiceService, JarvisAssistant.Services.WindowsSapiVoiceService>();
+#else
+				// Use stub service as fallback on non-Windows platforms
+				services.AddSingleton<IVoiceService, JarvisAssistant.Services.StubVoiceService>();
+#endif
 			}
 	}
 

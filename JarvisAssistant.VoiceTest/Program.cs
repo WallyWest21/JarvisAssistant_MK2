@@ -7,11 +7,46 @@ using System.Diagnostics;
 namespace JarvisAssistant.VoiceTest
 {
     /// <summary>
-    /// Simple console application to test ElevenLabs voice generation
+    /// Simple console application to test ElevenLabs voice generation and fallback services
     /// </summary>
     class Program
     {
         static async Task Main(string[] args)
+        {
+            Console.WriteLine("=== Jarvis Voice Test Suite ===");
+            Console.WriteLine();
+            Console.WriteLine("Select test mode:");
+            Console.WriteLine("1. ElevenLabs API Test (requires API key)");
+            Console.WriteLine("2. Fallback Services Test (free, no API key required)");
+            Console.WriteLine("3. Simple Fallback Test (basic functionality test)");
+            Console.WriteLine("4. Exit");
+            Console.WriteLine();
+            Console.Write("Enter choice (1-4): ");
+
+            var choice = Console.ReadLine();
+            
+            switch (choice)
+            {
+                case "1":
+                    await RunElevenLabsTest(args);
+                    break;
+                case "2":
+                    await FallbackTestProgram.RunAsync(args);
+                    break;
+                case "3":
+                    await SimpleFallbackTest.RunAsync(args);
+                    break;
+                case "4":
+                    Console.WriteLine("Exiting...");
+                    break;
+                default:
+                    Console.WriteLine("Invalid choice. Running simple fallback test by default...");
+                    await SimpleFallbackTest.RunAsync(args);
+                    break;
+            }
+        }
+
+        static async Task RunElevenLabsTest(string[] args)
         {
             Console.WriteLine("=== Jarvis ElevenLabs Voice Test ===");
             Console.WriteLine();

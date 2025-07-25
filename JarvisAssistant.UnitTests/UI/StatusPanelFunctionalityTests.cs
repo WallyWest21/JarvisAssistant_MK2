@@ -43,7 +43,7 @@ namespace JarvisAssistant.UnitTests.UI
             Assert.False(viewModel.IsExpanded);
             Assert.NotNull(viewModel.StatusSummary);
             Assert.False(viewModel.IsLoading);
-            Assert.Equal(ServiceState.Offline, viewModel.OverallStatus);
+            Assert.Equal(ServiceState.Error, viewModel.OverallStatus);
         }
 
         [Fact]

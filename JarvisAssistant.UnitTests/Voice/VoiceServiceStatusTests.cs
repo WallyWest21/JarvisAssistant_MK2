@@ -1,4 +1,4 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using JarvisAssistant.Core.Interfaces;
@@ -7,10 +7,9 @@ using System.Threading.Tasks;
 
 namespace JarvisAssistant.UnitTests.Voice
 {
-    [TestClass]
     public class VoiceServiceStatusTests
     {
-        [TestMethod]
+        [Fact]
         public async Task VoiceServiceHealthChecker_Should_Identify_StubVoiceService()
         {
             // Arrange
@@ -28,13 +27,13 @@ namespace JarvisAssistant.UnitTests.Voice
             var status = await healthChecker.CheckHealthAsync();
 
             // Assert
-            Assert.IsNotNull(status, "Status should not be null");
-            Assert.AreEqual("voice-service", status.ServiceName, "Service name should be 'voice-service'");
-            Assert.IsTrue(status.Metrics.ContainsKey("service_type"), "Status should contain service_type metric");
-            Assert.AreEqual("Stub", status.Metrics["service_type"], "Service type should be 'Stub' when using StubVoiceService");
+            Assert.NotNull(status);
+            Assert.Equal("voice-service", status.ServiceName);
+            Assert.True(status.Metrics.ContainsKey("service_type"));
+            Assert.Equal("Stub", status.Metrics["service_type"]);
         }
 
-        [TestMethod]
+        [Fact]
         public async Task VoiceServiceHealthChecker_Should_Identify_ElevenLabsVoiceService()
         {
             // This test would require an actual ElevenLabs API key

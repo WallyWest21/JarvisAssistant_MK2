@@ -14,23 +14,25 @@ namespace JarvisAssistant.UnitTests.Mocks
 
         public Task GoToAsync(string route)
         {
+            NavigationHistory.Add(route);
+
             if (ShouldThrowOnNavigation && NavigationException != null)
             {
                 throw NavigationException;
             }
 
-            NavigationHistory.Add(route);
             return Task.CompletedTask;
         }
 
         public Task GoToAsync(string route, IDictionary<string, object> parameters)
         {
+            NavigationHistory.Add(route);
+
             if (ShouldThrowOnNavigation && NavigationException != null)
             {
                 throw NavigationException;
             }
 
-            NavigationHistory.Add(route);
             return Task.CompletedTask;
         }
 

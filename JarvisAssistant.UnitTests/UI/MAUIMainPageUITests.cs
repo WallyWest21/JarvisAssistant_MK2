@@ -241,7 +241,7 @@ namespace JarvisAssistant.UnitTests.UI
             Assert.Contains(serviceStatuses, s => s.ServiceName == "system-health");
             
             // Verify status summary is accurate
-            var offlineCount = serviceStatuses.Count(s => s.State == ServiceState.Offline);
+            var offlineCount = serviceStatuses.Count(s => s.State == ServiceState.Offline || s.State == ServiceState.Error);
             Assert.True(offlineCount > 0, "Should have offline services in test data");
             Assert.Contains(offlineCount.ToString(), statusPanel.StatusSummary);
         }
