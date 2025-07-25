@@ -26,6 +26,11 @@ namespace JarvisAssistant.Core.Models
         public Dictionary<string, object>? Context { get; set; }
 
         /// <summary>
+        /// Gets or sets metadata associated with the message for enhanced functionality.
+        /// </summary>
+        public Dictionary<string, object>? Metadata { get; set; }
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="ChatRequest"/> class.
         /// </summary>
         public ChatRequest()

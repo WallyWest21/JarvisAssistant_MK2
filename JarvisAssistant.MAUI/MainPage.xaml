@@ -143,6 +143,11 @@
                             Style="{StaticResource JarvisButtonStyle}"
                             Clicked="OnStartChatClicked" />
                     
+                    <Button x:Name="KnowledgeBaseBtn"
+                            Text="Knowledge Base"
+                            Style="{StaticResource JarvisButtonStyle}"
+                            Clicked="OnKnowledgeBaseClicked" />
+                    
                     <Button x:Name="VoiceDemoBtn"
                             Text="Voice Demo"
                             Style="{StaticResource SecondaryButtonStyle}"

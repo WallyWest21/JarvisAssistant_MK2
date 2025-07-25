@@ -14,6 +14,7 @@ namespace JarvisAssistant.Core.Models
         private MessageType _type;
         private bool _isStreaming;
         private string _id = Guid.NewGuid().ToString();
+        private Dictionary<string, object>? _metadata;
 
         public string Id
         {
@@ -78,6 +79,19 @@ namespace JarvisAssistant.Core.Models
             set
             {
                 _isStreaming = value;
+                OnPropertyChanged();
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets metadata associated with the message for enhanced functionality.
+        /// </summary>
+        public Dictionary<string, object>? Metadata
+        {
+            get => _metadata;
+            set
+            {
+                _metadata = value;
                 OnPropertyChanged();
             }
         }

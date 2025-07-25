@@ -19,10 +19,12 @@ public partial class AppShell : Shell
 			// Register routes for navigation - ensure these pages can be instantiated
 			Routing.RegisterRoute("ChatPage", typeof(ChatPage));
 			Routing.RegisterRoute("VoiceDemoPage", typeof(VoiceDemoPage));
+			Routing.RegisterRoute("KnowledgeBasePage", typeof(KnowledgeBasePage));
 			
 			System.Diagnostics.Debug.WriteLine("Routes registered successfully:");
 			System.Diagnostics.Debug.WriteLine($"- ChatPage -> {typeof(ChatPage).FullName}");
 			System.Diagnostics.Debug.WriteLine($"- VoiceDemoPage -> {typeof(VoiceDemoPage).FullName}");
+			System.Diagnostics.Debug.WriteLine($"- KnowledgeBasePage -> {typeof(KnowledgeBasePage).FullName}");
 			
 			// Test that route registration worked by trying to create instances
 			try
@@ -36,6 +38,10 @@ public partial class AppShell : Shell
 				// Test VoiceDemoPage creation  
 				var voicePageTest = Activator.CreateInstance(typeof(VoiceDemoPage));
 				System.Diagnostics.Debug.WriteLine($"✓ VoiceDemoPage can be instantiated: {voicePageTest != null}");
+				
+				// Test KnowledgeBasePage creation
+				var knowledgePageTest = Activator.CreateInstance(typeof(KnowledgeBasePage));
+				System.Diagnostics.Debug.WriteLine($"✓ KnowledgeBasePage can be instantiated: {knowledgePageTest != null}");
 			}
 			catch (Exception testEx)
 			{

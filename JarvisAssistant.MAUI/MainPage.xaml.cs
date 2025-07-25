@@ -205,6 +205,26 @@ public partial class MainPage : ContentPage
         }
     }
 
+    private async void OnKnowledgeBaseClicked(object sender, EventArgs e)
+    {
+        // Add immediate debug output
+        System.Diagnostics.Debug.WriteLine("🔥🔥🔥 KNOWLEDGE BASE BUTTON CLICKED - EVENT IS FIRING! 🔥🔥🔥");
+        
+        try
+        {
+            _logger?.LogInformation("Navigating to knowledge base page");
+            System.Diagnostics.Debug.WriteLine("=== Knowledge Base Button Clicked ===");
+            
+            await Shell.Current.GoToAsync("KnowledgeBasePage");
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "Error navigating to knowledge base page");
+            System.Diagnostics.Debug.WriteLine($"ERROR navigating to knowledge base: {ex}");
+            await DisplayAlert("Error", "Failed to open knowledge base. Please try again.", "OK");
+        }
+    }
+
     private async void OnVoiceDemoClicked(object sender, EventArgs e)
     {
         // Add immediate debug output

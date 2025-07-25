@@ -6,6 +6,7 @@ using JarvisAssistant.MAUI.Views;
 using JarvisAssistant.MAUI.ViewModels;
 using JarvisAssistant.Services;
 using JarvisAssistant.Services.Extensions;
+using JarvisAssistant.Services.KnowledgeBase.Extensions;
 using SkiaSharp.Views.Maui.Controls.Hosting;
 using System;
 using System.IO;
@@ -144,10 +145,40 @@ public static class MauiProgram
 					return new FallbackLLMService(fallbackLogger);
 				});
 			}
+
+			// Register Knowledge Base Services
+			try
+			{
+				System.Diagnostics.Debug.WriteLine("Configuring Knowledge Base services...");
+				
+				// TODO: Add knowledge base services with in-memory storage for now
+				// This extension method needs to be implemented
+				/*
+				services.AddKnowledgeBaseServices(options =>
+				{
+					options.UseInMemoryStorage = true;
+					options.OllamaBaseUrl = GetPlatformSpecificOllamaEndpoint();
+					options.DefaultEmbeddingModel = "nomic-embed-text";
+					options.DefaultChunkSize = 1000;
+					options.DefaultChunkOverlap = 200;
+					options.DefaultSimilarityThreshold = 0.1f;
+				});
+				*/
+				
+				System.Diagnostics.Debug.WriteLine("Knowledge Base services configuration skipped (not implemented yet)");
+			}
+			catch (Exception ex)
+			{
+				System.Diagnostics.Debug.WriteLine($"Warning: Knowledge Base services not available: {ex.Message}");
+				// Knowledge base services are optional for now
+			}
 			
 			// Register Pages and ViewModels (always required)
 			services.AddTransient<ChatPage>();
 			services.AddTransient<ChatViewModel>();
+			services.AddTransient<EnhancedChatViewModel>();
+			services.AddTransient<KnowledgeBasePage>();
+			services.AddTransient<KnowledgeBaseViewModel>();
 			services.AddTransient<VoiceDemoPage>();
 			services.AddTransient<ElevenLabsVoiceDemoPage>();
 			services.AddTransient<ElevenLabsVoiceDemoViewModel>();
