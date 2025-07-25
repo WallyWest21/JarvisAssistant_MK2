@@ -36,6 +36,9 @@ public static class MauiProgram
 					fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
 				});
 
+				  // Add SolidWorks integration
+        builder.Services.AddSolidWorksIntegration();
+
 #if DEBUG
 			builder.Logging.AddDebug();
 			
