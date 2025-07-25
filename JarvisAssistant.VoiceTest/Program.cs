@@ -11,9 +11,57 @@ namespace JarvisAssistant.VoiceTest
     /// </summary>
     class Program
     {
+        private static CancellationTokenSource? _cancellationTokenSource;
+        private static ServiceProvider? _serviceProvider;
+
         static async Task Main(string[] args)
         {
+            // Set up cancellation handling for graceful shutdown
+            _cancellationTokenSource = new CancellationTokenSource();
+            Console.CancelKeyPress += (sender, e) =>
+            {
+                e.Cancel = true; // Prevent immediate termination
+                Console.WriteLine("\nShutdown requested. Cleaning up...");
+                _cancellationTokenSource.Cancel();
+            };
+
+            try
+            {
+                await RunApplicationAsync(args);
+            }
+            catch (OperationCanceledException)
+            {
+                Console.WriteLine("Application was cancelled.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Unhandled error: {ex.Message}");
+            }
+            finally
+            {
+                // Clean up resources
+                _serviceProvider?.Dispose();
+                _cancellationTokenSource?.Dispose();
+                Console.WriteLine("Cleanup completed. Press any key to exit...");
+                Console.ReadKey();
+            }
+        }
+
+        static async Task RunApplicationAsync(string[] args)
+        {
             Console.WriteLine("=== Jarvis Voice Test Suite ===");
+            Console.WriteLine();
+            
+            // First test environment variable reading
+            VoiceServiceStatusTest.TestEnvironmentVariableReading();
+            
+            Console.WriteLine();
+            Console.WriteLine("🎤 Testing Voice Service Configuration...");
+            Console.WriteLine("=========================================");
+            
+            // Test the service configuration
+            await VoiceServiceConfigTest.TestVoiceServiceAsync();
+            
             Console.WriteLine();
             Console.WriteLine("Select test mode:");
             Console.WriteLine("1. ElevenLabs API Test (requires API key)");
@@ -77,13 +125,17 @@ namespace JarvisAssistant.VoiceTest
                 config.AudioFormat = "pcm_16000"; // Use PCM format for better compatibility
             });
 
-            using var serviceProvider = services.BuildServiceProvider();
-            var voiceService = serviceProvider.GetRequiredService<IVoiceService>();
+            // Store service provider for proper disposal
+            _serviceProvider = services.BuildServiceProvider();
+            var voiceService = _serviceProvider.GetRequiredService<IVoiceService>();
 
             var testMessage = "Hello! This is Jarvis, your AI assistant. I am now speaking using ElevenLabs text-to-speech technology. This is a 10-second test to verify that voice synthesis is working correctly.";
 
             try
             {
+                // Check for cancellation
+                _cancellationTokenSource?.Token.ThrowIfCancellationRequested();
+
                 Console.WriteLine("Generating speech...");
                 var stopwatch = Stopwatch.StartNew();
                 
@@ -97,17 +149,17 @@ namespace JarvisAssistant.VoiceTest
                 var audioFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "jarvis_test.wav");
                 
                 // If it's PCM data, create a proper WAV file with headers
-                if (serviceProvider.GetRequiredService<JarvisAssistant.Core.Models.ElevenLabsConfig>().AudioFormat.StartsWith("pcm"))
+                if (_serviceProvider.GetRequiredService<JarvisAssistant.Core.Models.ElevenLabsConfig>().AudioFormat.StartsWith("pcm"))
                 {
                     var wavData = CreateWavFile(audioData, 16000, 16, 1); // 16kHz, 16-bit, mono
-                    await File.WriteAllBytesAsync(audioFile, wavData);
+                    await File.WriteAllBytesAsync(audioFile, wavData, _cancellationTokenSource?.Token ?? CancellationToken.None);
                 }
                 else
                 {
                     // For MP3 and other formats, save with appropriate extension
-                    var extension = serviceProvider.GetRequiredService<JarvisAssistant.Core.Models.ElevenLabsConfig>().AudioFormat.Split('_')[0];
+                    var extension = _serviceProvider.GetRequiredService<JarvisAssistant.Core.Models.ElevenLabsConfig>().AudioFormat.Split('_')[0];
                     audioFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), $"jarvis_test.{extension}");
-                    await File.WriteAllBytesAsync(audioFile, audioData);
+                    await File.WriteAllBytesAsync(audioFile, audioData, _cancellationTokenSource?.Token ?? CancellationToken.None);
                 }
                 
                 Console.WriteLine($"Audio saved to: {audioFile}");
@@ -124,11 +176,14 @@ namespace JarvisAssistant.VoiceTest
                             FileName = audioFile,
                             UseShellExecute = true
                         };
-                        Process.Start(startInfo);
+                        
+                        using var process = Process.Start(startInfo);
                         
                         Console.WriteLine("Audio should be playing now!");
                         Console.WriteLine("Press any key to exit...");
-                        Console.ReadKey();
+                        
+                        // Wait for key press or cancellation
+                        await WaitForKeyOrCancellationAsync();
                     }
                     catch (Exception ex)
                     {
@@ -141,9 +196,50 @@ namespace JarvisAssistant.VoiceTest
                     Console.WriteLine($"Please manually play the audio file: {audioFile}");
                 }
             }
+            catch (OperationCanceledException)
+            {
+                Console.WriteLine("Operation was cancelled.");
+                throw;
+            }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Waits for a key press or cancellation token
+        /// </summary>
+        private static async Task WaitForKeyOrCancellationAsync()
+        {
+            var tcs = new TaskCompletionSource<bool>();
+            
+            // Set up key reading on a background thread
+            var keyTask = Task.Run(() =>
+            {
+                try
+                {
+                    Console.ReadKey();
+                    tcs.TrySetResult(true);
+                }
+                catch
+                {
+                    tcs.TrySetResult(false);
+                }
+            });
+
+            // Wait for either key press or cancellation
+            try
+            {
+                await Task.WhenAny(
+                    tcs.Task,
+                    Task.Delay(-1, _cancellationTokenSource?.Token ?? CancellationToken.None)
+                );
+            }
+            catch (OperationCanceledException)
+            {
+                // Cancellation was requested
+                throw;
             }
         }
 

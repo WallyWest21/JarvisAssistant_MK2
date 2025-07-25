@@ -5,6 +5,19 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    
+    <!-- Properties to help with file locking issues -->
+    <CopyRetryCount>3</CopyRetryCount>
+    <CopyRetryDelayMilliseconds>1000</CopyRetryDelayMilliseconds>
+    <UseSharedCompilation>false</UseSharedCompilation>
+    <DisableOutOfProcTaskHost>true</DisableOutOfProcTaskHost>
+    
+    <!-- Enable deterministic builds -->
+    <Deterministic>true</Deterministic>
+    <PathMap>$(MSBuildProjectDirectory)=.</PathMap>
+    
+    <!-- Pre-build event to clean up hanging processes -->
+    <PreBuildEvent>taskkill /IM "JarvisAssistant.VoiceTest.exe" /F 2>nul || exit /b 0</PreBuildEvent>
   </PropertyGroup>
 
   <ItemGroup>

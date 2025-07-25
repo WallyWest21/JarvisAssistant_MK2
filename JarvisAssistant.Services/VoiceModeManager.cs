@@ -466,7 +466,16 @@ namespace JarvisAssistant.Services
                         {
                             var audioData = await _voiceService.GenerateSpeechAsync(result.Response, null, cancellationToken);
                             _logger.LogDebug("Generated speech response of {Size} bytes", audioData.Length);
-                            // In a real implementation, this would play the audio
+                            
+                            // Play the audio if we have data
+                            if (audioData.Length > 0)
+                            {
+                                await PlayAudioAsync(audioData, cancellationToken);
+                            }
+                            else
+                            {
+                                _logger.LogWarning("Voice service returned empty audio data");
+                            }
                         }
                         catch (Exception ex)
                         {
@@ -542,6 +551,162 @@ namespace JarvisAssistant.Services
         private void OnWakeWordDetected(WakeWordDetectedEventArgs eventArgs)
         {
             WakeWordDetected?.Invoke(this, eventArgs);
+        }
+
+        /// <summary>
+        /// Plays audio data using platform-appropriate audio playback mechanisms.
+        /// </summary>
+        /// <param name="audioData">The audio data to play (PCM/WAV format).</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        private async Task PlayAudioAsync(byte[] audioData, CancellationToken cancellationToken = default)
+        {
+            if (audioData == null || audioData.Length == 0)
+            {
+                _logger.LogWarning("Cannot play audio: no data provided");
+                return;
+            }
+
+            try
+            {
+                _logger.LogDebug("Playing audio data of {Size} bytes", audioData.Length);
+
+                // Create a temporary file to play the audio
+                var tempFile = Path.GetTempFileName();
+                var audioFile = Path.ChangeExtension(tempFile, ".wav");
+
+                try
+                {
+                    // Create WAV file with proper headers if the data is raw PCM
+                    byte[] wavData;
+                    if (IsWavFile(audioData))
+                    {
+                        // Data already has WAV headers
+                        wavData = audioData;
+                    }
+                    else
+                    {
+                        // Raw PCM data - add WAV headers
+                        wavData = CreateWavFile(audioData, 16000, 1, 16); // 16kHz, mono, 16-bit
+                    }
+
+                    await File.WriteAllBytesAsync(audioFile, wavData, cancellationToken);
+
+#if WINDOWS
+                    // On Windows, use SoundPlayer for direct audio playback
+                    if (OperatingSystem.IsWindows())
+                    {
+                        await Task.Run(() =>
+                        {
+                            try
+                            {
+                                using var player = new System.Media.SoundPlayer(audioFile);
+                                player.PlaySync();
+                                _logger.LogDebug("Audio playback completed successfully");
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogError(ex, "Failed to play audio using SoundPlayer");
+                            }
+                        }, cancellationToken);
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Audio playback not implemented for this platform");
+                    }
+#else
+                    // On other platforms, log the limitation
+                    _logger.LogWarning("Audio playback not implemented for this platform. Audio file created at: {AudioFile}", audioFile);
+                    await Task.Delay(100, cancellationToken); // Simulate playback time
+#endif
+                }
+                finally
+                {
+                    // Clean up temporary files
+                    try
+                    {
+                        if (File.Exists(tempFile)) File.Delete(tempFile);
+                        if (File.Exists(audioFile)) File.Delete(audioFile);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to clean up temporary audio files");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error playing audio");
+            }
+        }
+
+        /// <summary>
+        /// Checks if the audio data already contains WAV file headers.
+        /// </summary>
+        /// <param name="audioData">The audio data to check.</param>
+        /// <returns>True if the data appears to be a WAV file, false otherwise.</returns>
+        private static bool IsWavFile(byte[] audioData)
+        {
+            if (audioData.Length < 12) return false;
+            
+            // Check for RIFF header
+            return audioData[0] == 0x52 && audioData[1] == 0x49 && 
+                   audioData[2] == 0x46 && audioData[3] == 0x46 && // "RIFF"
+                   audioData[8] == 0x57 && audioData[9] == 0x41 && 
+                   audioData[10] == 0x56 && audioData[11] == 0x45; // "WAVE"
+        }
+
+        /// <summary>
+        /// Creates a WAV file with proper headers from raw PCM audio data.
+        /// </summary>
+        /// <param name="audioData">Raw PCM audio data.</param>
+        /// <param name="sampleRate">Sample rate in Hz.</param>
+        /// <param name="channels">Number of audio channels.</param>
+        /// <param name="bitsPerSample">Bits per sample.</param>
+        /// <returns>Complete WAV file data with headers.</returns>
+        private static byte[] CreateWavFile(byte[] audioData, int sampleRate, int channels, int bitsPerSample)
+        {
+            var byteRate = sampleRate * channels * bitsPerSample / 8;
+            var blockAlign = channels * bitsPerSample / 8;
+            var dataSize = audioData.Length;
+            var chunkSize = 36 + dataSize;
+
+            var wavFile = new byte[44 + dataSize];
+            var index = 0;
+
+            // RIFF header
+            Buffer.BlockCopy(System.Text.Encoding.ASCII.GetBytes("RIFF"), 0, wavFile, index, 4);
+            index += 4;
+            Buffer.BlockCopy(BitConverter.GetBytes(chunkSize), 0, wavFile, index, 4);
+            index += 4;
+            Buffer.BlockCopy(System.Text.Encoding.ASCII.GetBytes("WAVE"), 0, wavFile, index, 4);
+            index += 4;
+
+            // fmt sub-chunk
+            Buffer.BlockCopy(System.Text.Encoding.ASCII.GetBytes("fmt "), 0, wavFile, index, 4);
+            index += 4;
+            Buffer.BlockCopy(BitConverter.GetBytes(16), 0, wavFile, index, 4); // Sub-chunk size
+            index += 4;
+            Buffer.BlockCopy(BitConverter.GetBytes((short)1), 0, wavFile, index, 2); // Audio format (PCM)
+            index += 2;
+            Buffer.BlockCopy(BitConverter.GetBytes((short)channels), 0, wavFile, index, 2);
+            index += 2;
+            Buffer.BlockCopy(BitConverter.GetBytes(sampleRate), 0, wavFile, index, 4);
+            index += 4;
+            Buffer.BlockCopy(BitConverter.GetBytes(byteRate), 0, wavFile, index, 4);
+            index += 4;
+            Buffer.BlockCopy(BitConverter.GetBytes((short)blockAlign), 0, wavFile, index, 2);
+            index += 2;
+            Buffer.BlockCopy(BitConverter.GetBytes((short)bitsPerSample), 0, wavFile, index, 2);
+            index += 2;
+
+            // data sub-chunk
+            Buffer.BlockCopy(System.Text.Encoding.ASCII.GetBytes("data"), 0, wavFile, index, 4);
+            index += 4;
+            Buffer.BlockCopy(BitConverter.GetBytes(dataSize), 0, wavFile, index, 4);
+            index += 4;
+            Buffer.BlockCopy(audioData, 0, wavFile, index, dataSize);
+
+            return wavFile;
         }
 
         /// <summary>

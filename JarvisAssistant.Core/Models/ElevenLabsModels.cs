@@ -68,6 +68,28 @@ namespace JarvisAssistant.Core.Models
         public long NextResetUnix { get; set; }
 
         /// <summary>
+        /// When the quota resets (alternative property name for compatibility).
+        /// </summary>
+        [JsonPropertyName("next_character_count_reset_unix")]
+        public long NextCharacterCountResetUnix 
+        { 
+            get => NextResetUnix; 
+            set => NextResetUnix = value; 
+        }
+
+        /// <summary>
+        /// Whether the character limit can be extended.
+        /// </summary>
+        [JsonPropertyName("can_extend_character_limit")]
+        public bool CanExtendCharacterLimit { get; set; }
+
+        /// <summary>
+        /// Whether the user is allowed to extend the character limit.
+        /// </summary>
+        [JsonPropertyName("allowed_to_extend_character_limit")]
+        public bool AllowedToExtendCharacterLimit { get; set; }
+
+        /// <summary>
         /// Gets the next reset time as a DateTime.
         /// </summary>
         public DateTime NextResetTime => DateTimeOffset.FromUnixTimeSeconds(NextResetUnix).DateTime;

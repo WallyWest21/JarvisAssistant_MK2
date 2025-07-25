@@ -319,24 +319,3 @@ public static class ErrorLogger
 		}
 	}
 }
-
-public static class ServiceCollectionExtensions
-{
-    /// <summary>
-    /// Adds ElevenLabs voice service to the specified IServiceCollection.
-    /// </summary>
-    /// <param name="services">The service collection to configure.</param>
-    /// <param name="apiKey">The API key for ElevenLabs.</param>
-    /// <returns>The updated service collection.</returns>
-    public static IServiceCollection AddJarvisVoiceService(
-        this IServiceCollection services,
-        string apiKey)
-    {
-        return services.AddElevenLabsVoiceService(config =>
-        {
-            config.ApiKey = "sk_3f8d635adaf9cccefb6a9da0f368d4909a8d1348b9ac977e";
-            config.VoiceId = "TpWd9RAb8p3bL0U1nF8O"; // Change this line
-            // ... rest of configuration
-        });
-    }
-}
