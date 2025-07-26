@@ -117,8 +117,8 @@ public static class MauiProgram
 			{
 				System.Diagnostics.Debug.WriteLine("Configuring Ollama LLM Service with automatic endpoint detection...");
 				
-				// Add Ollama LLM Service with automatic fallback
-				services.AddOllamaLLMService(); // Will auto-detect best endpoint
+				// Add Ollama LLM Service with explicit endpoint
+				services.AddOllamaLLMService("http://100.108.155.28:11434");
 				
 				// Configure with additional options
 				services.ConfigureOllamaLLMService(options =>
@@ -126,6 +126,10 @@ public static class MauiProgram
 					// Override defaults if needed
 					options.Timeout = TimeSpan.FromSeconds(30);
 					options.MaxRetryAttempts = 3;
+					
+					// Explicitly set model names to match available models
+					options.DefaultModel = "llama3.2:latest";
+					options.CodeModel = "deepseek-coder:latest";
 					
 					// Platform-specific alternative endpoints
 #if ANDROID

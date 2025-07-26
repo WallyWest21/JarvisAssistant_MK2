@@ -162,12 +162,12 @@ namespace JarvisAssistant.Services.Extensions
         /// <summary>
         /// Gets or sets the default model to use for general queries.
         /// </summary>
-        public string DefaultModel { get; set; } = "llama3.2";
+        public string DefaultModel { get; set; } = "llama3.2:latest";
 
         /// <summary>
         /// Gets or sets the model to use for code-related queries.
         /// </summary>
-        public string CodeModel { get; set; } = "deepseek-coder";
+        public string CodeModel { get; set; } = "deepseek-coder:latest";
 
         /// <summary>
         /// Gets or sets whether to enable personality formatting.

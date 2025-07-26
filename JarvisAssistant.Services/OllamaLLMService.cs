@@ -13,7 +13,7 @@ namespace JarvisAssistant.Services
         private readonly IOllamaClient _ollamaClient;
         private readonly IPersonalityService _personalityService;
         private readonly ILogger<OllamaLLMService> _logger;
-        private string _activeModel = "llama3.2";
+        private string _activeModel = "llama3.2:latest";
 
         public OllamaLLMService(
             IOllamaClient ollamaClient,
