@@ -7,6 +7,7 @@ using JarvisAssistant.MAUI.Platforms.Android.VoiceHandlers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System;
+using MediaManager;
 
 namespace JarvisAssistant.MAUI;
 
@@ -22,6 +23,9 @@ public class MainActivity : MauiAppCompatActivity
 		try
 		{
 			base.OnCreate(savedInstanceState);
+			
+			// Initialize MediaManager for Android
+			CrossMediaManager.Current.Init(this);
 			
 			// Initialize voice handler for Google TV
 			InitializeVoiceHandler();

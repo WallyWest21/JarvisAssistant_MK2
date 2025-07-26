@@ -34,32 +34,35 @@ namespace JarvisAssistant.Services
         /// </summary>
         private void InitializeFallbackServices()
         {
-            // First priority: Modern Windows TTS (best quality, free, Windows only)
+            // First priority: Direct Windows TTS (no WAV files, no beeping, Windows only)
             if (OperatingSystem.IsWindows())
             {
                 try
                 {
+                    var directTts = new DirectWindowsVoiceService();
+                    _fallbackServices.Add(directTts);
+                    _logger.LogInformation("Added Direct Windows TTS as fallback option 1 (no beeping)");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to initialize Direct Windows TTS service");
+                }
+
+                try
+                {
+                    // Second priority: Modern Windows TTS (best quality, free, Windows only)
                     var modernTts = new ModernWindowsTtsService(_logger as ILogger<ModernWindowsTtsService> ?? 
                         Microsoft.Extensions.Logging.Abstractions.NullLogger<ModernWindowsTtsService>.Instance);
                     _fallbackServices.Add(modernTts);
-                    _logger.LogInformation("Added Modern Windows TTS as fallback option 1");
+                    _logger.LogInformation("Added Modern Windows TTS as fallback option 2");
                 }
                 catch (Exception ex)
                 {
                     _logger.LogWarning(ex, "Failed to initialize Modern Windows TTS service");
                 }
 
-                try
-                {
-                    // Second priority: Legacy Windows SAPI (reliable, free, Windows only)
-                    var legacyTts = new WindowsSapiVoiceService();
-                    _fallbackServices.Add(legacyTts);
-                    _logger.LogInformation("Added Windows SAPI as fallback option 2");
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Failed to initialize Windows SAPI service");
-                }
+                // Note: Removed WindowsSapiVoiceService as it causes beeping due to WAV file generation
+                // DirectWindowsVoiceService replaces it with direct audio output
             }
             else
             {

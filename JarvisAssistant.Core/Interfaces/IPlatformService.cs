@@ -54,6 +54,13 @@ namespace JarvisAssistant.Core.Interfaces
         bool IsGoogleTV();
 
         /// <summary>
+        /// Determines if the current platform is Android TV.
+        /// This is an alias for IsGoogleTV() for better API consistency.
+        /// </summary>
+        /// <value>True if running on Android TV, false otherwise.</value>
+        bool IsAndroidTV => IsGoogleTV();
+
+        /// <summary>
         /// Gets the optimal theme for the current platform.
         /// </summary>
         /// <returns>The recommended theme for the current platform.</returns>

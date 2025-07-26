@@ -1,7 +1,22 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFrameworks>net8.0-android;net8.0-windows10.0.19041.0</TargetFrameworks>
+		<TargetFrameworks>net8.0-andr	<ItemGroup>
+		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+		<PackageReference Include="Microsoft.Maui.Controls" Version="8.0.91" />
+		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="8.0.91" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.1" />
+		<PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="8.0.11" />
+		<PackageReference Include="System.Reactive" Version="6.0.1" />
+		<PackageReference Include="SkiaSharp.Views.Maui.Controls" Version="2.88.8" />
+		<PackageReference Include="SkiaSharp.Views.Maui.Core" Version="2.88.8" />
+	</ItemGroup>
+
+	<!-- Windows-specific references for WPF MediaPlayer -->
+	<ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">
+		<Reference Include="PresentationCore" />
+		<Reference Include="WindowsBase" />
+	</ItemGroup>-windows10.0.19041.0</TargetFrameworks>
 		<!-- Uncomment to also build the tizen app. You will need to install tizen by following this: https://github.com/Samsung/Tizen.NET -->
 		<!-- <TargetFrameworks>$(TargetFrameworks);net8.0-tizen</TargetFrameworks> -->
 
@@ -28,6 +43,9 @@
 		<!-- Versions -->
 		<ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
 		<ApplicationVersion>1</ApplicationVersion>
+
+		<!-- Define MAUI version for NET 8.0 -->
+		<MauiVersion>8.0.91</MauiVersion>
 
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">11.0</SupportedOSPlatformVersion>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">13.1</SupportedOSPlatformVersion>
@@ -83,15 +101,13 @@
 
 	<ItemGroup>
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
-		<PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
-		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="$(MauiVersion)" />
+		<PackageReference Include="Microsoft.Maui.Controls" Version="8.0.91" />
+		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="8.0.91" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.1" />
 		<PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="8.0.11" />
 		<PackageReference Include="System.Reactive" Version="6.0.1" />
 		<PackageReference Include="SkiaSharp.Views.Maui.Controls" Version="2.88.8" />
 		<PackageReference Include="SkiaSharp.Views.Maui.Core" Version="2.88.8" />
-		<PackageReference Include="Plugin.MediaManager" Version="1.2.2" />
-		<PackageReference Include="Plugin.MediaManager.Forms" Version="1.2.2" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -101,6 +117,9 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <MauiXaml Update="Views\SplashPage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
 	  <MauiXaml Update="Views\VoiceDemoPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
@@ -116,6 +135,12 @@
 	  <Compile Update="Views\ChatPage.xaml.cs">
 	    <DependentUpon>ChatPage.xaml</DependentUpon>
 	  </Compile>
+	</ItemGroup>
+
+	<!-- Windows-specific references for WPF MediaPlayer -->
+	<ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">
+		<Reference Include="PresentationCore" />
+		<Reference Include="WindowsBase" />
 	</ItemGroup>
 
 </Project>

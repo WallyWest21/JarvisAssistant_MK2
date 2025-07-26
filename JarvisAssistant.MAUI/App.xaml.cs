@@ -106,6 +106,9 @@ public partial class App : Application
 			// Initialize theme management
 			await InitializeThemeManagement();
 			
+			// Initialize voice mode as enabled by default for Windows and Android TV
+			await InitializeVoiceModeAsync();
+			
 			System.Diagnostics.Debug.WriteLine("App started successfully");
 		}
 		catch (Exception ex)
@@ -324,6 +327,57 @@ public partial class App : Application
 		catch (Exception ex)
 		{
 			_logger?.LogWarning(ex, "Error refreshing element hierarchy for theme change");
+		}
+	}
+
+	/// <summary>
+	/// Initializes voice mode as enabled by default for Windows and Android TV platforms.
+	/// </summary>
+	private async Task InitializeVoiceModeAsync()
+	{
+		try
+		{
+			// Get services from DI container
+			var serviceProvider = Handler?.MauiContext?.Services;
+			if (serviceProvider == null)
+			{
+				System.Diagnostics.Debug.WriteLine("Service provider not available for voice mode initialization");
+				return;
+			}
+
+			var voiceModeManager = serviceProvider.GetService<IVoiceModeManager>();
+			var logger = serviceProvider.GetService<ILogger<App>>();
+
+			if (voiceModeManager == null)
+			{
+				logger?.LogWarning("Voice mode manager service not available");
+				return;
+			}
+
+			// Enable voice mode by default on Windows and Android TV platforms
+#if WINDOWS
+			logger?.LogInformation("🎤 Enabling voice mode by default for Windows platform");
+			await voiceModeManager.EnableVoiceModeAsync();
+			logger?.LogInformation("✅ Voice mode enabled successfully on Windows");
+#elif ANDROID
+			// Check if running on Android TV
+			var platformService = serviceProvider.GetService<IPlatformService>();
+			if (platformService?.IsAndroidTV == true)
+			{
+				logger?.LogInformation("🎤 Enabling voice mode by default for Android TV platform");
+				await voiceModeManager.EnableVoiceModeAsync();
+				logger?.LogInformation("✅ Voice mode enabled successfully on Android TV");
+			}
+			else
+			{
+				logger?.LogInformation("📱 Android phone detected - voice mode available but not auto-enabled");
+			}
+#endif
+		}
+		catch (Exception ex)
+		{
+			System.Diagnostics.Debug.WriteLine($"Error initializing voice mode: {ex}");
+			_logger?.LogError(ex, "Failed to initialize voice mode");
 		}
 	}
 

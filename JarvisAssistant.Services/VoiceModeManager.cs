@@ -459,18 +459,23 @@ namespace JarvisAssistant.Services
 
                 if (result.Success && result.ShouldSpeak && !string.IsNullOrWhiteSpace(result.Response))
                 {
+                    _logger.LogInformation("Command processed successfully. Generating speech response: '{Response}'", result.Response);
+                    
                     // Generate speech response
                     _ = Task.Run(async () =>
                     {
                         try
                         {
+                            _logger.LogDebug("Requesting speech generation for: '{Text}'", result.Response);
                             var audioData = await _voiceService.GenerateSpeechAsync(result.Response, null, cancellationToken);
-                            _logger.LogDebug("Generated speech response of {Size} bytes", audioData.Length);
+                            _logger.LogInformation("Generated speech response of {Size} bytes", audioData.Length);
                             
                             // Play the audio if we have data
                             if (audioData.Length > 0)
                             {
+                                _logger.LogInformation("Playing audio response...");
                                 await PlayAudioAsync(audioData, cancellationToken);
+                                _logger.LogInformation("Audio response playback completed");
                             }
                             else
                             {
@@ -482,6 +487,11 @@ namespace JarvisAssistant.Services
                             _logger.LogError(ex, "Failed to generate speech response");
                         }
                     }, cancellationToken);
+                }
+                else
+                {
+                    _logger.LogInformation("Command result - Success: {Success}, ShouldSpeak: {ShouldSpeak}, HasResponse: {HasResponse}", 
+                        result.Success, result.ShouldSpeak, !string.IsNullOrWhiteSpace(result.Response));
                 }
             }
             catch (Exception ex)
@@ -562,7 +572,7 @@ namespace JarvisAssistant.Services
         {
             if (audioData == null || audioData.Length == 0)
             {
-                _logger.LogWarning("Cannot play audio: no data provided");
+                _logger.LogInformation("No audio data to play - service may have used direct speech output");
                 return;
             }
 
@@ -586,26 +596,80 @@ namespace JarvisAssistant.Services
                     else
                     {
                         // Raw PCM data - add WAV headers
-                        wavData = CreateWavFile(audioData, 16000, 1, 16); // 16kHz, mono, 16-bit
+                        wavData = CreateWavFile(audioData, 22050, 1, 16); // 22kHz, mono, 16-bit
                     }
 
                     await File.WriteAllBytesAsync(audioFile, wavData, cancellationToken);
 
 #if WINDOWS
-                    // On Windows, use SoundPlayer for direct audio playback
+                    // On Windows, use multiple playback methods for better compatibility
                     if (OperatingSystem.IsWindows())
                     {
                         await Task.Run(() =>
                         {
                             try
                             {
-                                using var player = new System.Media.SoundPlayer(audioFile);
-                                player.PlaySync();
-                                _logger.LogDebug("Audio playback completed successfully");
+                                _logger.LogInformation("Playing audio file: {AudioFile} ({Size} bytes)", audioFile, wavData.Length);
+                                
+                                // Method 1: Try SoundPlayer first
+                                try
+                                {
+                                    using var player = new System.Media.SoundPlayer(audioFile);
+                                    player.Load();
+                                    player.PlaySync();
+                                    _logger.LogInformation("Audio playback completed successfully with SoundPlayer");
+                                    return; // Success, exit early
+                                }
+                                catch (Exception spEx)
+                                {
+                                    _logger.LogWarning(spEx, "SoundPlayer failed, trying alternative method");
+                                }
+                                
+                                // Method 2: Use Windows Media Player if SoundPlayer fails
+                                try
+                                {
+                                    _logger.LogInformation("Attempting Windows Media Player playback");
+                                    var startInfo = new System.Diagnostics.ProcessStartInfo
+                                    {
+                                        FileName = "powershell.exe",
+                                        Arguments = $"-Command \"Add-Type -AssemblyName System.Speech; $synth = New-Object System.Speech.Synthesis.SpeechSynthesizer; $synth.SetOutputToDefaultAudioDevice(); $synth.Speak((Get-Content -Raw '{audioFile.Replace("'", "''")}' | Out-String).Trim())\"",
+                                        UseShellExecute = false,
+                                        CreateNoWindow = true,
+                                        WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden
+                                    };
+                                    using var process = System.Diagnostics.Process.Start(startInfo);
+                                    process?.WaitForExit(10000); // Wait up to 10 seconds
+                                    _logger.LogInformation("Alternative audio playback completed");
+                                    return; // Success
+                                }
+                                catch (Exception psEx)
+                                {
+                                    _logger.LogWarning(psEx, "PowerShell TTS failed, trying direct process launch");
+                                }
+                                
+                                // Method 3: Direct process launch (system default player)
+                                try
+                                {
+                                    _logger.LogInformation("Attempting system default player");
+                                    var startInfo = new System.Diagnostics.ProcessStartInfo
+                                    {
+                                        FileName = audioFile,
+                                        UseShellExecute = true,
+                                        CreateNoWindow = true,
+                                        WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden
+                                    };
+                                    using var process = System.Diagnostics.Process.Start(startInfo);
+                                    process?.WaitForExit(10000); // Wait up to 10 seconds
+                                    _logger.LogInformation("System default player completed");
+                                }
+                                catch (Exception fileEx)
+                                {
+                                    _logger.LogError(fileEx, "All audio playback methods failed");
+                                }
                             }
                             catch (Exception ex)
                             {
-                                _logger.LogError(ex, "Failed to play audio using SoundPlayer");
+                                _logger.LogError(ex, "Failed to play audio using any method");
                             }
                         }, cancellationToken);
                     }
@@ -621,6 +685,9 @@ namespace JarvisAssistant.Services
                 }
                 finally
                 {
+                    // Add a small delay before cleanup to ensure audio playback is complete
+                    await Task.Delay(1000, CancellationToken.None);
+                    
                     // Clean up temporary files
                     try
                     {

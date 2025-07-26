@@ -67,9 +67,10 @@ namespace JarvisAssistant.VoiceTest
             Console.WriteLine("1. ElevenLabs API Test (requires API key)");
             Console.WriteLine("2. Fallback Services Test (free, no API key required)");
             Console.WriteLine("3. Simple Fallback Test (basic functionality test)");
-            Console.WriteLine("4. Exit");
+            Console.WriteLine("4. Windows SAPI TTS Test (direct TTS test)");
+            Console.WriteLine("5. Exit");
             Console.WriteLine();
-            Console.Write("Enter choice (1-4): ");
+            Console.Write("Enter choice (1-5): ");
 
             var choice = Console.ReadLine();
             
@@ -85,6 +86,9 @@ namespace JarvisAssistant.VoiceTest
                     await SimpleFallbackTest.RunAsync(args);
                     break;
                 case "4":
+                    await TTSTestProgram.RunAsync(args);
+                    break;
+                case "5":
                     Console.WriteLine("Exiting...");
                     break;
                 default:

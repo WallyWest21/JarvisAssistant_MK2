@@ -10,6 +10,7 @@ using JarvisAssistant.Services.KnowledgeBase.Extensions;
 using SkiaSharp.Views.Maui.Controls.Hosting;
 using System;
 using System.IO;
+using MediaManager;
 
 namespace JarvisAssistant.MAUI;
 
@@ -36,8 +37,11 @@ public static class MauiProgram
 					fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
 				});
 
-				  // Add SolidWorks integration
-        builder.Services.AddSolidWorksIntegration();
+			// Initialize MediaManager for cross-platform audio playback
+			CrossMediaManager.Current.Init();
+
+			// Add SolidWorks integration
+			builder.Services.AddSolidWorksIntegration();
 
 #if DEBUG
 			builder.Logging.AddDebug();
@@ -247,47 +251,50 @@ public static class MauiProgram
 	/// <param name="services">The service collection to configure.</param>
 	private static void ConfigureVoiceService(IServiceCollection services)
 	{
-			try
+		try
+		{
+			// FORCE ElevenLabs as primary - hardcoded to ensure it works
+			var elevenLabsApiKey = "sk_572262d27043d888785a02694bc21fbdc70b548cc017b119";
+			
+			// Also try environment variable as backup
+			if (string.IsNullOrWhiteSpace(elevenLabsApiKey))
 			{
-				// Check for ElevenLabs API key in environment variables
-				var elevenLabsApiKey = Environment.GetEnvironmentVariable("ELEVENLABS_API_KEY");
+				elevenLabsApiKey = Environment.GetEnvironmentVariable("ELEVENLABS_API_KEY");
+			}
 
-				if (!string.IsNullOrWhiteSpace(elevenLabsApiKey))
-				{
-					System.Diagnostics.Debug.WriteLine("Configuring ElevenLabs voice service...");
-					
-					// Configure ElevenLabs service optimized for Jarvis
-					services.AddJarvisVoiceService(elevenLabsApiKey);
-					
-					System.Diagnostics.Debug.WriteLine("ElevenLabs voice service configured successfully");
-				}
-				else
-				{
-#if WINDOWS
-					System.Diagnostics.Debug.WriteLine("ElevenLabs API key not found, using Windows SAPI voice service");
-					
-					// Fall back to Windows Speech Platform (free TTS) - only on Windows
-					services.AddSingleton<IVoiceService, JarvisAssistant.Services.WindowsSapiVoiceService>();
-#else
-					System.Diagnostics.Debug.WriteLine("ElevenLabs API key not found, using stub voice service");
-					
-					// Fall back to stub service on non-Windows platforms
-					services.AddSingleton<IVoiceService, JarvisAssistant.Services.StubVoiceService>();
-#endif
-				}
-			}
-			catch (Exception ex)
+			if (!string.IsNullOrWhiteSpace(elevenLabsApiKey))
 			{
-				System.Diagnostics.Debug.WriteLine($"Error configuring voice service: {ex.Message}");
+				System.Diagnostics.Debug.WriteLine("🎯 FORCING ElevenLabs as PRIMARY voice service...");
+				System.Diagnostics.Debug.WriteLine($"Using API key: {elevenLabsApiKey.Substring(0, 8)}...");
 				
-#if WINDOWS
-				// Always ensure we have a voice service, using Windows SAPI as fallback on Windows
-				services.AddSingleton<IVoiceService, JarvisAssistant.Services.WindowsSapiVoiceService>();
-#else
-				// Use stub service as fallback on non-Windows platforms
-				services.AddSingleton<IVoiceService, JarvisAssistant.Services.StubVoiceService>();
-#endif
+				// Configure ElevenLabs service with intelligent fallback
+				services.AddJarvisVoiceService(elevenLabsApiKey);
+				
+				System.Diagnostics.Debug.WriteLine("✅ ElevenLabs voice service configured as PRIMARY with fallback");
 			}
+			else
+			{
+				System.Diagnostics.Debug.WriteLine("❌ No ElevenLabs API key found - using fallback-only configuration");
+				
+				// No ElevenLabs key - use intelligent fallback service (Windows TTS options)
+				services.AddSingleton<IVoiceService>(serviceProvider =>
+				{
+					var logger = serviceProvider.GetRequiredService<ILogger<IntelligentFallbackVoiceService>>();
+					return new IntelligentFallbackVoiceService(logger);
+				});
+			}
+		}
+		catch (Exception ex)
+		{
+			System.Diagnostics.Debug.WriteLine($"❌ Error configuring voice service: {ex.Message}");
+			
+			// Fallback to intelligent fallback service (includes Windows SAPI and Modern TTS)
+			services.AddSingleton<IVoiceService>(serviceProvider =>
+			{
+				var logger = serviceProvider.GetRequiredService<ILogger<IntelligentFallbackVoiceService>>();
+				return new IntelligentFallbackVoiceService(logger);
+			});
+		}
 	}
 
 	/// <summary>

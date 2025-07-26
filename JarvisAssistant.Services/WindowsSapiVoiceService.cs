@@ -29,16 +29,60 @@ namespace JarvisAssistant.Services
             {
                 if (OperatingSystem.IsWindows())
                 {
+                    // Initialize Windows audio system first
+                    InitializeWindowsAudio();
+                    
                     _synthesizer = new SpeechSynthesizer();
                     
-                    // Configure for better quality
+                    // Configure for better quality and compatibility
                     _synthesizer.Rate = 0; // Normal speed
                     _synthesizer.Volume = 80; // 80% volume
+                    
+                    // Test if TTS is working by getting installed voices
+                    var voices = _synthesizer.GetInstalledVoices();
+                    System.Diagnostics.Debug.WriteLine($"WindowsSapiVoiceService: Found {voices.Count} installed voices");
+                    
+                    // Try to select a good quality voice if available
+                    var englishVoice = voices.FirstOrDefault(v => v.VoiceInfo.Culture.TwoLetterISOLanguageName == "en");
+                    if (englishVoice != null)
+                    {
+                        _synthesizer.SelectVoice(englishVoice.VoiceInfo.Name);
+                        System.Diagnostics.Debug.WriteLine($"WindowsSapiVoiceService: Selected voice: {englishVoice.VoiceInfo.Name}");
+                    }
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"WindowsSapiVoiceService: Initialization failed: {ex.Message}");
                 // Initialization failed, _synthesizer will remain null
+            }
+#endif
+        }
+
+        /// <summary>
+        /// Initialize Windows audio system to ensure TTS works properly
+        /// </summary>
+        private static void InitializeWindowsAudio()
+        {
+#if WINDOWS
+            try
+            {
+                // Force Windows to initialize the audio subsystem
+                // This helps prevent the "beeping" issue
+                using var testSynth = new SpeechSynthesizer();
+                testSynth.SetOutputToDefaultAudioDevice();
+                
+                // Attempt a very short test to initialize audio
+                testSynth.SpeakAsync(" "); // Single space - minimal audio
+                System.Threading.Thread.Sleep(100); // Give it a moment
+                testSynth.SpeakAsyncCancelAll();
+                
+                System.Diagnostics.Debug.WriteLine("WindowsSapiVoiceService: Windows audio system initialized");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"WindowsSapiVoiceService: Audio initialization warning: {ex.Message}");
+                // Non-fatal - continue anyway
             }
 #endif
         }
@@ -52,9 +96,12 @@ namespace JarvisAssistant.Services
             if (string.IsNullOrWhiteSpace(text))
                 return Array.Empty<byte>();
 
+            System.Diagnostics.Debug.WriteLine($"WindowsSapiVoiceService: Generating speech for text: '{text.Substring(0, Math.Min(50, text.Length))}'");
+
 #if WINDOWS
             if (!OperatingSystem.IsWindows() || _synthesizer == null)
             {
+                System.Diagnostics.Debug.WriteLine("WindowsSapiVoiceService: Not on Windows or synthesizer is null");
                 return Array.Empty<byte>();
             }
 
@@ -66,29 +113,40 @@ namespace JarvisAssistant.Services
                     try
                     {
                         _synthesizer.SelectVoice(voiceId);
+                        System.Diagnostics.Debug.WriteLine($"WindowsSapiVoiceService: Selected voice: {voiceId}");
                     }
                     catch
                     {
                         // If voice selection fails, use default voice
+                        System.Diagnostics.Debug.WriteLine($"WindowsSapiVoiceService: Failed to select voice '{voiceId}', using default");
                     }
                 }
 
                 using var memoryStream = new MemoryStream();
                 
-                // Configure audio format for 16kHz, 16-bit, mono (compatible with our WAV format)
+                // Configure audio format for 22kHz, 16-bit, mono (better compatibility than 16kHz)
                 _synthesizer.SetOutputToAudioStream(memoryStream, 
-                    new SpeechAudioFormatInfo(16000, AudioBitsPerSample.Sixteen, AudioChannel.Mono));
+                    new SpeechAudioFormatInfo(22050, AudioBitsPerSample.Sixteen, AudioChannel.Mono));
 
                 var tcs = new TaskCompletionSource<bool>();
                 
                 _synthesizer.SpeakCompleted += (sender, e) =>
                 {
                     if (e.Error != null)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"WindowsSapiVoiceService: Synthesis error: {e.Error.Message}");
                         tcs.SetException(e.Error);
+                    }
                     else if (e.Cancelled)
+                    {
+                        System.Diagnostics.Debug.WriteLine("WindowsSapiVoiceService: Synthesis cancelled");
                         tcs.SetCanceled();
+                    }
                     else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"WindowsSapiVoiceService: Synthesis completed, generated {memoryStream.Length} bytes");
                         tcs.SetResult(true);
+                    }
                 };
 
                 // Start synthesis
@@ -104,10 +162,13 @@ namespace JarvisAssistant.Services
                     await tcs.Task;
                 }
 
-                return memoryStream.ToArray();
+                var audioData = memoryStream.ToArray();
+                System.Diagnostics.Debug.WriteLine($"WindowsSapiVoiceService: Returning {audioData.Length} bytes of audio data");
+                return audioData;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"WindowsSapiVoiceService: Exception during synthesis: {ex.Message}");
                 return Array.Empty<byte>();
             }
 #else
