@@ -327,7 +327,7 @@ namespace JarvisAssistant.Services
             _healthChecker.RegisterService("llm-engine", "http://100.108.155.28:11434/api/tags", "LLM Engine");
             _healthChecker.RegisterService("vision-api", "http://localhost:5000/health", "Vision API");
             // voice-service registration is handled by MauiProgram based on configuration
-            _healthChecker.RegisterService("chat-api", "http://localhost:5002/health", "Chat API");
+            // Note: chat-api removed as chat functionality is built into MAUI client, not a separate service
             _healthChecker.RegisterService("signalr-hub", "http://localhost:5003/health", "SignalR Hub");
         }
 

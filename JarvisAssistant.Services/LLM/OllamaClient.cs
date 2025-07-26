@@ -20,12 +20,12 @@ namespace JarvisAssistant.Services.LLM
 
         private static readonly Dictionary<QueryType, string> ModelMapping = new()
         {
-            { QueryType.General, "llama3.2" },
-            { QueryType.Code, "deepseek-coder" },
-            { QueryType.Technical, "llama3.2" },
-            { QueryType.Creative, "llama3.2" },
-            { QueryType.Mathematical, "llama3.2" },
-            { QueryType.Error, "deepseek-coder" }
+            { QueryType.General, "llama3.2:latest" },
+            { QueryType.Code, "deepseek-coder:latest" },
+            { QueryType.Technical, "llama3.2:latest" },
+            { QueryType.Creative, "llama3.2:latest" },
+            { QueryType.Mathematical, "llama3.2:latest" },
+            { QueryType.Error, "deepseek-coder:latest" }
         };
 
         public OllamaClient(HttpClient httpClient, ILogger<OllamaClient> logger, IOptions<OllamaLLMOptions>? options = null)
