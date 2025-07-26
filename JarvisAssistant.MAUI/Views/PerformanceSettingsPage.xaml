@@ -1,0 +1,347 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage x:Class="JarvisAssistant.MAUI.Views.PerformanceSettingsPage"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewmodels="clr-namespace:JarvisAssistant.MAUI.ViewModels"
+             xmlns:models="clr-namespace:JarvisAssistant.Core.Models;assembly=JarvisAssistant.Core"
+             Title="Performance Settings"
+             BackgroundColor="{DynamicResource PageBackgroundColor}">
+
+    <ContentPage.BindingContext>
+        <viewmodels:PerformanceSettingsViewModel />
+    </ContentPage.BindingContext>
+
+    <ScrollView>
+        <StackLayout Padding="20" Spacing="20">
+            
+            <!-- Header -->
+            <Frame BackgroundColor="{DynamicResource CardBackgroundColor}" 
+                   CornerRadius="10" Padding="15">
+                <StackLayout>
+                    <Label Text="RTX 3060 12GB Optimization Settings"
+                           FontSize="20" FontAttributes="Bold"
+                           HorizontalOptions="Center"
+                           TextColor="{DynamicResource PrimaryTextColor}" />
+                    <Label Text="Optimize Jarvis Assistant for your RTX 3060 GPU with 12GB VRAM"
+                           FontSize="14" 
+                           HorizontalOptions="Center"
+                           TextColor="{DynamicResource SecondaryTextColor}" />
+                </StackLayout>
+            </Frame>
+
+            <!-- Quality vs Speed Balance -->
+            <Frame BackgroundColor="{DynamicResource CardBackgroundColor}" 
+                   CornerRadius="10" Padding="15">
+                <StackLayout>
+                    <Label Text="Quality vs Speed Balance"
+                           FontSize="18" FontAttributes="Bold"
+                           TextColor="{DynamicResource PrimaryTextColor}" />
+                    
+                    <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="10">
+                        <Button Grid.Column="0" Grid.Row="0"
+                                Text="Max Speed"
+                                BackgroundColor="{Binding QualitySpeedBalance, Converter={StaticResource EnumToColorConverter}, ConverterParameter=MaxSpeed}"
+                                Command="{Binding OptimizeForSpeedCommand}" />
+                        <Button Grid.Column="1" Grid.Row="0"
+                                Text="Balanced"
+                                BackgroundColor="{Binding QualitySpeedBalance, Converter={StaticResource EnumToColorConverter}, ConverterParameter=Balanced}"
+                                Command="{Binding QualitySpeedBalance, Converter={StaticResource SetEnumValueConverter}, ConverterParameter=Balanced}" />
+                        <Button Grid.Column="2" Grid.Row="0"
+                                Text="Max Quality"
+                                BackgroundColor="{Binding QualitySpeedBalance, Converter={StaticResource EnumToColorConverter}, ConverterParameter=MaxQuality}"
+                                Command="{Binding OptimizeForQualityCommand}" />
+                        
+                        <Label Grid.Column="0" Grid.Row="1" Text="&lt;300ms code, 1s chat" FontSize="12" HorizontalOptions="Center"
+                               TextColor="{DynamicResource SecondaryTextColor}" />
+                        <Label Grid.Column="1" Grid.Row="1" Text="500ms code, 2s chat" FontSize="12" HorizontalOptions="Center"
+                               TextColor="{DynamicResource SecondaryTextColor}" />
+                        <Label Grid.Column="2" Grid.Row="1" Text="800ms code, 4s chat" FontSize="12" HorizontalOptions="Center"
+                               TextColor="{DynamicResource SecondaryTextColor}" />
+                    </Grid>
+                </StackLayout>
+            </Frame>
+
+            <!-- Performance Targets -->
+            <Frame BackgroundColor="{DynamicResource CardBackgroundColor}" 
+                   CornerRadius="10" Padding="15">
+                <StackLayout>
+                    <Label Text="Performance Targets"
+                           FontSize="18" FontAttributes="Bold"
+                           TextColor="{DynamicResource PrimaryTextColor}" />
+                    
+                    <Grid ColumnDefinitions="2*,*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="10">
+                        <Label Grid.Column="0" Grid.Row="0" Text="Code Completion Target (ms):"
+                               VerticalOptions="Center"
+                               TextColor="{DynamicResource PrimaryTextColor}" />
+                        <Slider Grid.Column="1" Grid.Row="0"
+                                Minimum="100" Maximum="2000" Value="{Binding CodeCompletionTargetMs}"
+                                ThumbColor="{DynamicResource Primary}" />
+                        <Label Grid.Column="2" Grid.Row="0" Text="{Binding CodeCompletionTargetMs}"
+                               VerticalOptions="Center" WidthRequest="50"
+                               TextColor="{DynamicResource PrimaryTextColor}" />
+                        
+                        <Label Grid.Column="0" Grid.Row="1" Text="Chat Response Target (ms):"
+                               VerticalOptions="Center"
+                               TextColor="{DynamicResource PrimaryTextColor}" />
+                        <Slider Grid.Column="1" Grid.Row="1"
+                                Minimum="500" Maximum="10000" Value="{Binding ChatResponseTargetMs}"
+                                ThumbColor="{DynamicResource Primary}" />
+                        <Label Grid.Column="2" Grid.Row="1" Text="{Binding ChatResponseTargetMs}"
+                               VerticalOptions="Center" WidthRequest="50"
+                               TextColor="{DynamicResource PrimaryTextColor}" />
+                    </Grid>
+                </StackLayout>
+            </Frame>
+
+            <!-- Response Configuration -->
+            <Frame BackgroundColor="{DynamicResource CardBackgroundColor}" 
+                   CornerRadius="10" Padding="15">
+                <StackLayout>
+                    <Label Text="Response Configuration"
+                           FontSize="18" FontAttributes="Bold"
+                           TextColor="{DynamicResource PrimaryTextColor}" />
+                    
+                    <Grid ColumnDefinitions="2*,*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="10">
+                        <Label Grid.Column="0" Grid.Row="0" Text="Max Tokens per Response:"
+                               VerticalOptions="Center"
+                               TextColor="{DynamicResource PrimaryTextColor}" />
+                        <Slider Grid.Column="1" Grid.Row="0"
+                                Minimum="256" Maximum="4096" Value="{Binding MaxTokensPerResponse}"
+                                ThumbColor="{DynamicResource Primary}" />
+                        <Label Grid.Column="2" Grid.Row="0" Text="{Binding MaxTokensPerResponse}"
+                               VerticalOptions="Center" WidthRequest="50"
+                               TextColor="{DynamicResource PrimaryTextColor}" />
+                        
+                        <Label Grid.Column="0" Grid.Row="1" Text="Batch Size:"
+                               VerticalOptions="Center"
+                               TextColor="{DynamicResource PrimaryTextColor}" />
+                        <Slider Grid.Column="1" Grid.Row="1"
+                                Minimum="1" Maximum="20" Value="{Binding BatchSize}"
+                                ThumbColor="{DynamicResource Primary}" />
+                        <Label Grid.Column="2" Grid.Row="1" Text="{Binding BatchSize}"
+                               VerticalOptions="Center" WidthRequest="50"
+                               TextColor="{DynamicResource PrimaryTextColor}" />
+                        
+                        <Label Grid.Column="0" Grid.Row="2" Text="Streaming Chunk Size:"
+                               VerticalOptions="Center"
+                               TextColor="{DynamicResource PrimaryTextColor}" />
+                        <Slider Grid.Column="1" Grid.Row="2"
+                                Minimum="10" Maximum="200" Value="{Binding StreamingChunkSize}"
+                                ThumbColor="{DynamicResource Primary}" />
+                        <Label Grid.Column="2" Grid.Row="2" Text="{Binding StreamingChunkSize}"
+                               VerticalOptions="Center" WidthRequest="50"
+                               TextColor="{DynamicResource PrimaryTextColor}" />
+                    </Grid>
+                </StackLayout>
+            </Frame>
+
+            <!-- Caching Configuration -->
+            <Frame BackgroundColor="{DynamicResource CardBackgroundColor}" 
+                   CornerRadius="10" Padding="15">
+                <StackLayout>
+                    <Label Text="Caching and Optimization"
+                           FontSize="18" FontAttributes="Bold"
+                           TextColor="{DynamicResource PrimaryTextColor}" />
+                    
+                    <Grid ColumnDefinitions="2*,*,Auto" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="10">
+                        <Label Grid.Column="0" Grid.Row="0" Text="Cache Size (MB):"
+                               VerticalOptions="Center"
+                               TextColor="{DynamicResource PrimaryTextColor}" />
+                        <Slider Grid.Column="1" Grid.Row="0"
+                                Minimum="10" Maximum="1000" Value="{Binding CacheSizeMB}"
+                                ThumbColor="{DynamicResource Primary}" />
+                        <Label Grid.Column="2" Grid.Row="0" Text="{Binding CacheSizeMB}"
+                               VerticalOptions="Center" WidthRequest="50"
+                               TextColor="{DynamicResource PrimaryTextColor}" />
+                        
+                        <Label Grid.Column="0" Grid.Row="1" Text="Enable Response Caching"
+                               VerticalOptions="Center"
+                               TextColor="{DynamicResource PrimaryTextColor}" />
+                        <Switch Grid.Column="1" Grid.Row="1"
+                                IsToggled="{Binding EnableCaching}"
+                                OnColor="{DynamicResource Primary}" />
+                        
+                        <Label Grid.Column="0" Grid.Row="2" Text="Use Compression"
+                               VerticalOptions="Center"
+                               TextColor="{DynamicResource PrimaryTextColor}" />
+                        <Switch Grid.Column="1" Grid.Row="2"
+                                IsToggled="{Binding UseCompression}"
+                                OnColor="{DynamicResource Primary}" />
+                        
+                        <Label Grid.Column="0" Grid.Row="3" Text="Enable Embedding Caching"
+                               VerticalOptions="Center"
+                               TextColor="{DynamicResource PrimaryTextColor}" />
+                        <Switch Grid.Column="1" Grid.Row="3"
+                                IsToggled="{Binding EnableEmbeddingCaching}"
+                                OnColor="{DynamicResource Primary}" />
+                    </Grid>
+                </StackLayout>
+            </Frame>
+
+            <!-- GPU & System Settings -->
+            <Frame BackgroundColor="{DynamicResource CardBackgroundColor}" 
+                   CornerRadius="10" Padding="15">
+                <StackLayout>
+                    <Label Text="GPU and System Optimization"
+                           FontSize="18" FontAttributes="Bold"
+                           TextColor="{DynamicResource PrimaryTextColor}" />
+                    
+                    <Grid ColumnDefinitions="2*,*,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="10">
+                        <Label Grid.Column="0" Grid.Row="0" Text="VRAM Threshold (%):"
+                               VerticalOptions="Center"
+                               TextColor="{DynamicResource PrimaryTextColor}" />
+                        <Slider Grid.Column="1" Grid.Row="0"
+                                Minimum="50" Maximum="95" Value="{Binding VramThresholdPercent}"
+                                ThumbColor="{DynamicResource Primary}" />
+                        <Label Grid.Column="2" Grid.Row="0" Text="{Binding VramThresholdPercent}"
+                               VerticalOptions="Center" WidthRequest="50"
+                               TextColor="{DynamicResource PrimaryTextColor}" />
+                        
+                        <Label Grid.Column="0" Grid.Row="1" Text="Max Concurrent Requests:"
+                               VerticalOptions="Center"
+                               TextColor="{DynamicResource PrimaryTextColor}" />
+                        <Slider Grid.Column="1" Grid.Row="1"
+                                Minimum="1" Maximum="16" Value="{Binding MaxConcurrentRequests}"
+                                ThumbColor="{DynamicResource Primary}" />
+                        <Label Grid.Column="2" Grid.Row="1" Text="{Binding MaxConcurrentRequests}"
+                               VerticalOptions="Center" WidthRequest="50"
+                               TextColor="{DynamicResource PrimaryTextColor}" />
+                        
+                        <Label Grid.Column="0" Grid.Row="2" Text="Enable GPU Monitoring"
+                               VerticalOptions="Center"
+                               TextColor="{DynamicResource PrimaryTextColor}" />
+                        <Switch Grid.Column="1" Grid.Row="2"
+                                IsToggled="{Binding EnableGpuMonitoring}"
+                                OnColor="{DynamicResource Primary}" />
+                        
+                        <Label Grid.Column="0" Grid.Row="3" Text="Auto Model Optimization"
+                               VerticalOptions="Center"
+                               TextColor="{DynamicResource PrimaryTextColor}" />
+                        <Switch Grid.Column="1" Grid.Row="3"
+                                IsToggled="{Binding EnableAutomaticModelOptimization}"
+                                OnColor="{DynamicResource Primary}" />
+                        
+                        <Label Grid.Column="0" Grid.Row="4" Text="Use Quantization"
+                               VerticalOptions="Center"
+                               TextColor="{DynamicResource PrimaryTextColor}" />
+                        <Switch Grid.Column="1" Grid.Row="4"
+                                IsToggled="{Binding UseQuantization}"
+                                OnColor="{DynamicResource Primary}" />
+                    </Grid>
+                </StackLayout>
+            </Frame>
+
+            <!-- Advanced Settings Toggle -->
+            <Button Text="{Binding ShowAdvancedSettings, Converter={StaticResource BoolToTextConverter}, ConverterParameter='Hide Advanced Settings|Show Advanced Settings'}"
+                    Command="{Binding ToggleAdvancedSettingsCommand}"
+                    BackgroundColor="{DynamicResource Secondary}"
+                    TextColor="White" />
+
+            <!-- Advanced Settings -->
+            <Frame BackgroundColor="{DynamicResource CardBackgroundColor}" 
+                   CornerRadius="10" Padding="15"
+                   IsVisible="{Binding ShowAdvancedSettings}">
+                <StackLayout>
+                    <Label Text="Advanced Settings"
+                           FontSize="18" FontAttributes="Bold"
+                           TextColor="{DynamicResource PrimaryTextColor}" />
+                    
+                    <Grid ColumnDefinitions="2*,*,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="10">
+                        <Label Grid.Column="0" Grid.Row="0" Text="Request Timeout (seconds):"
+                               VerticalOptions="Center"
+                               TextColor="{DynamicResource PrimaryTextColor}" />
+                        <Slider Grid.Column="1" Grid.Row="0"
+                                Minimum="5" Maximum="120" Value="{Binding RequestTimeoutSeconds}"
+                                ThumbColor="{DynamicResource Primary}" />
+                        <Label Grid.Column="2" Grid.Row="0" Text="{Binding RequestTimeoutSeconds}"
+                               VerticalOptions="Center" WidthRequest="50"
+                               TextColor="{DynamicResource PrimaryTextColor}" />
+                        
+                        <Label Grid.Column="0" Grid.Row="1" Text="Cache Cleanup Interval (minutes):"
+                               VerticalOptions="Center"
+                               TextColor="{DynamicResource PrimaryTextColor}" />
+                        <Slider Grid.Column="1" Grid.Row="1"
+                                Minimum="1" Maximum="60" Value="{Binding CacheCleanupIntervalMinutes}"
+                                ThumbColor="{DynamicResource Primary}" />
+                        <Label Grid.Column="2" Grid.Row="1" Text="{Binding CacheCleanupIntervalMinutes}"
+                               VerticalOptions="Center" WidthRequest="50"
+                               TextColor="{DynamicResource PrimaryTextColor}" />
+                        
+                        <Label Grid.Column="0" Grid.Row="2" Text="Batch Timeout (ms):"
+                               VerticalOptions="Center"
+                               TextColor="{DynamicResource PrimaryTextColor}" />
+                        <Slider Grid.Column="1" Grid.Row="2"
+                                Minimum="50" Maximum="1000" Value="{Binding BatchTimeoutMs}"
+                                ThumbColor="{DynamicResource Primary}" />
+                        <Label Grid.Column="2" Grid.Row="2" Text="{Binding BatchTimeoutMs}"
+                               VerticalOptions="Center" WidthRequest="50"
+                               TextColor="{DynamicResource PrimaryTextColor}" />
+                        
+                        <Label Grid.Column="0" Grid.Row="3" Text="Temperature:"
+                               VerticalOptions="Center"
+                               TextColor="{DynamicResource PrimaryTextColor}" />
+                        <Slider Grid.Column="1" Grid.Row="3"
+                                Minimum="0.1" Maximum="2.0" Value="{Binding Temperature}"
+                                ThumbColor="{DynamicResource Primary}" />
+                        <Label Grid.Column="2" Grid.Row="3" Text="{Binding Temperature, StringFormat='{0:F1}'}"
+                               VerticalOptions="Center" WidthRequest="50"
+                               TextColor="{DynamicResource PrimaryTextColor}" />
+                        
+                        <Label Grid.Column="0" Grid.Row="4" Text="Context Window Size:"
+                               VerticalOptions="Center"
+                               TextColor="{DynamicResource PrimaryTextColor}" />
+                        <Slider Grid.Column="1" Grid.Row="4"
+                                Minimum="512" Maximum="16384" Value="{Binding ContextWindowSize}"
+                                ThumbColor="{DynamicResource Primary}" />
+                        <Label Grid.Column="2" Grid.Row="4" Text="{Binding ContextWindowSize}"
+                               VerticalOptions="Center" WidthRequest="50"
+                               TextColor="{DynamicResource PrimaryTextColor}" />
+                    </Grid>
+                </StackLayout>
+            </Frame>
+
+            <!-- Action Buttons -->
+            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10">
+                <Button Grid.Column="0"
+                        Text="Apply Settings"
+                        Command="{Binding ApplySettingsCommand}"
+                        BackgroundColor="{DynamicResource Primary}"
+                        TextColor="White" />
+                
+                <Button Grid.Column="1"
+                        Text="Reset Defaults"
+                        Command="{Binding ResetToDefaultsCommand}"
+                        BackgroundColor="{DynamicResource Secondary}"
+                        TextColor="White" />
+                
+                <Button Grid.Column="2"
+                        Text="Test Performance"
+                        BackgroundColor="{DynamicResource Tertiary}"
+                        TextColor="White"
+                        Clicked="OnTestPerformanceClicked" />
+            </Grid>
+
+            <!-- Performance Tips -->
+            <Frame BackgroundColor="{DynamicResource InfoBackgroundColor}" 
+                   CornerRadius="10" Padding="15">
+                <StackLayout>
+                    <Label Text="💡 RTX 3060 Optimization Tips"
+                           FontSize="16" FontAttributes="Bold"
+                           TextColor="{DynamicResource InfoTextColor}" />
+                    <Label FontSize="14" TextColor="{DynamicResource InfoTextColor}">
+                        <Label.FormattedText>
+                            <FormattedString>
+                                <Span Text="• Keep VRAM usage below 85% (10.2GB) for optimal performance" />
+                                <Span Text="&#10;• Use 4-bit quantization for faster inference with minimal quality loss" />
+                                <Span Text="&#10;• Enable caching for frequently used code completions" />
+                                <Span Text="&#10;• Batch similar requests together for better GPU utilization" />
+                                <Span Text="&#10;• Monitor GPU temperature to prevent thermal throttling" />
+                            </FormattedString>
+                        </Label.FormattedText>
+                    </Label>
+                </StackLayout>
+            </Frame>
+
+        </StackLayout>
+    </ScrollView>
+</ContentPage>

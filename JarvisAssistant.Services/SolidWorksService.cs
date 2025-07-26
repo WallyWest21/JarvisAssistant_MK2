@@ -5,6 +5,10 @@ using Microsoft.Extensions.Logging;
 using System.Runtime.InteropServices;
 using System.Diagnostics;
 
+// Use aliases to resolve type ambiguities
+using SolidWorksImpactLevel = JarvisAssistant.Core.Models.SolidWorks.ImpactLevel;
+using SolidWorksDifficultyLevel = JarvisAssistant.Core.Models.SolidWorks.DifficultyLevel;
+
 namespace JarvisAssistant.Services
 {
     /// <summary>
@@ -715,8 +719,8 @@ namespace JarvisAssistant.Services
                     Title = "AI Optimization Suggestion",
                     Description = suggestion.Trim(),
                     Category = OptimizationCategory.Performance,
-                    Impact = ImpactLevel.Medium,
-                    Difficulty = DifficultyLevel.Medium
+                    Impact = SolidWorksImpactLevel.Medium,
+                    Difficulty = SolidWorksDifficultyLevel.Medium
                 }).ToList();
 
             result.OptimizationSuggestions.AddRange(suggestions);
@@ -732,8 +736,8 @@ namespace JarvisAssistant.Services
                     Title = "Remove Suppressed Features",
                     Description = "Consider removing permanently suppressed features to improve model clarity",
                     Category = OptimizationCategory.FeatureTree,
-                    Impact = ImpactLevel.Low,
-                    Difficulty = DifficultyLevel.Easy
+                    Impact = SolidWorksImpactLevel.Low,
+                    Difficulty = SolidWorksDifficultyLevel.Easy
                 });
             }
 
@@ -744,8 +748,8 @@ namespace JarvisAssistant.Services
                     Title = "Simplify Feature Tree",
                     Description = "Complex feature tree detected. Consider consolidating similar features",
                     Category = OptimizationCategory.Performance,
-                    Impact = ImpactLevel.Medium,
-                    Difficulty = DifficultyLevel.Medium
+                    Impact = SolidWorksImpactLevel.Medium,
+                    Difficulty = SolidWorksDifficultyLevel.Medium
                 });
             }
         }
