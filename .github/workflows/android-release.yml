@@ -1,0 +1,171 @@
+name: Build Signed Android Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number (e.g., 1.0.0)'
+        required: true
+        default: '1.0.0'
+      create_release:
+        description: 'Create GitHub release'
+        type: boolean
+        default: true
+
+env:
+  DOTNET_VERSION: '8.0.x'
+  JAVA_VERSION: '11'
+  ANDROID_API_LEVEL: '34'
+  ANDROID_BUILD_TOOLS_VERSION: '34.0.0'
+
+jobs:
+  build-signed-android:
+    runs-on: ubuntu-latest
+    name: Build Signed Android APK
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Setup Java JDK
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'microsoft'
+        java-version: ${{ env.JAVA_VERSION }}
+
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+
+    - name: Install Android SDK components
+      run: |
+        sdkmanager "platform-tools" "platforms;android-${{ env.ANDROID_API_LEVEL }}" "build-tools;${{ env.ANDROID_BUILD_TOOLS_VERSION }}"
+
+    - name: Install .NET MAUI workload
+      run: dotnet workload install maui
+
+    - name: Create keystore from secrets
+      if: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      run: |
+        echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > jarvis-release-key.keystore
+
+    - name: Restore dependencies
+      run: dotnet restore JarvisAssistant.sln
+
+    - name: Update version in project file
+      run: |
+        sed -i 's|<ApplicationDisplayVersion>.*</ApplicationDisplayVersion>|<ApplicationDisplayVersion>${{ github.event.inputs.version }}</ApplicationDisplayVersion>|g' JarvisAssistant.MAUI/JarvisAssistant.MAUI.csproj
+        sed -i 's|<ApplicationVersion>.*</ApplicationVersion>|<ApplicationVersion>${{ github.run_number }}</ApplicationVersion>|g' JarvisAssistant.MAUI/JarvisAssistant.MAUI.csproj
+
+    - name: Build signed Android APK (Phone)
+      run: |
+        dotnet publish JarvisAssistant.MAUI/JarvisAssistant.MAUI.csproj \
+          -f net8.0-android \
+          -c Release \
+          -p:AndroidSdkDirectory=$ANDROID_SDK_ROOT \
+          -p:AndroidKeyStore=true \
+          -p:AndroidSigningKeyStore="../jarvis-release-key.keystore" \
+          -p:AndroidSigningKeyAlias="${{ secrets.ANDROID_KEY_ALIAS }}" \
+          -p:AndroidSigningKeyPass="${{ secrets.ANDROID_KEY_PASSWORD }}" \
+          -p:AndroidSigningStorePass="${{ secrets.ANDROID_STORE_PASSWORD }}" \
+          -p:AndroidPackageFormat=apk \
+          -o ./artifacts/android-phone
+
+    - name: Build signed Android TV APK
+      run: |
+        dotnet publish JarvisAssistant.MAUI/JarvisAssistant.MAUI.csproj \
+          -f net8.0-android \
+          -c Release \
+          -p:AndroidSdkDirectory=$ANDROID_SDK_ROOT \
+          -p:AndroidKeyStore=true \
+          -p:AndroidSigningKeyStore="../jarvis-release-key.keystore" \
+          -p:AndroidSigningKeyAlias="${{ secrets.ANDROID_KEY_ALIAS }}" \
+          -p:AndroidSigningKeyPass="${{ secrets.ANDROID_KEY_PASSWORD }}" \
+          -p:AndroidSigningStorePass="${{ secrets.ANDROID_STORE_PASSWORD }}" \
+          -p:AndroidApplication=true \
+          -p:AndroidUseSharedRuntime=false \
+          -p:AndroidLinkMode=SdkOnly \
+          -p:AndroidEnableProfiledAot=false \
+          -p:RunAOTCompilation=false \
+          -p:AndroidPackageFormat=apk \
+          -p:AndroidManifestMerger=manifestmerger.jar \
+          -o ./artifacts/android-tv
+
+    - name: Build Android App Bundle (AAB) for Play Store
+      run: |
+        dotnet publish JarvisAssistant.MAUI/JarvisAssistant.MAUI.csproj \
+          -f net8.0-android \
+          -c Release \
+          -p:AndroidSdkDirectory=$ANDROID_SDK_ROOT \
+          -p:AndroidKeyStore=true \
+          -p:AndroidSigningKeyStore="../jarvis-release-key.keystore" \
+          -p:AndroidSigningKeyAlias="${{ secrets.ANDROID_KEY_ALIAS }}" \
+          -p:AndroidSigningKeyPass="${{ secrets.ANDROID_KEY_PASSWORD }}" \
+          -p:AndroidSigningStorePass="${{ secrets.ANDROID_STORE_PASSWORD }}" \
+          -p:AndroidPackageFormat=aab \
+          -o ./artifacts/android-aab
+
+    - name: Rename APK files
+      run: |
+        mv ./artifacts/android-phone/*-Signed.apk ./artifacts/android-phone/JarvisAssistant-${{ github.event.inputs.version }}-phone.apk || true
+        mv ./artifacts/android-tv/*-Signed.apk ./artifacts/android-tv/JarvisAssistant-${{ github.event.inputs.version }}-tv.apk || true
+        mv ./artifacts/android-aab/*-Signed.aab ./artifacts/android-aab/JarvisAssistant-${{ github.event.inputs.version }}.aab || true
+
+    - name: Upload signed APK artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: signed-android-release
+        path: |
+          ./artifacts/android-phone/*.apk
+          ./artifacts/android-tv/*.apk
+          ./artifacts/android-aab/*.aab
+
+    - name: Create Release
+      if: ${{ github.event.inputs.create_release == 'true' }}
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v${{ github.event.inputs.version }}
+        release_name: Jarvis Assistant v${{ github.event.inputs.version }}
+        body: |
+          ## Jarvis Assistant v${{ github.event.inputs.version }}
+          
+          ### 📱 Android Release
+          - **Phone APK**: Ready for sideloading on Android phones
+          - **Android TV APK**: Optimized for Android TV devices
+          - **Play Store AAB**: Android App Bundle for Google Play Store submission
+          
+          ### 🔧 Build Information
+          - Build Number: ${{ github.run_number }}
+          - Built with .NET 8 and MAUI
+          - Signed with release keystore
+          
+          ### 📥 Installation Instructions
+          
+          #### Android Phone/Tablet
+          1. Download `JarvisAssistant-${{ github.event.inputs.version }}-phone.apk`
+          2. Enable "Install from unknown sources" in Android settings
+          3. Install the APK file
+          
+          #### Android TV
+          1. Download `JarvisAssistant-${{ github.event.inputs.version }}-tv.apk`
+          2. Install using ADB or file manager on Android TV
+          3. Launch from the TV app drawer
+          
+          ### ⚠️ Requirements
+          - Android 5.0 (API level 21) or higher
+          - Minimum 2GB RAM recommended
+          - Network connection for full functionality
+        draft: false
+        prerelease: false
+
+    - name: Clean up keystore
+      if: always()
+      run: rm -f jarvis-release-key.keystore

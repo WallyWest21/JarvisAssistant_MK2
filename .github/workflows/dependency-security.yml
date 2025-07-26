@@ -1,0 +1,218 @@
+name: Dependency & Security Updates
+
+on:
+  schedule:
+    # Run weekly on Mondays at 9 AM UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+
+env:
+  DOTNET_VERSION: '8.0.x'
+
+jobs:
+  dependency-update:
+    runs-on: ubuntu-latest
+    name: Update Dependencies
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        fetch-depth: 0
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Install .NET MAUI workload
+      run: dotnet workload install maui
+
+    - name: Install dotnet outdated tool
+      run: dotnet tool install --global dotnet-outdated-tool
+
+    - name: Check for outdated packages
+      run: |
+        echo "## Outdated Packages Report" > dependency-report.md
+        echo "Generated on: $(date)" >> dependency-report.md
+        echo "" >> dependency-report.md
+        
+        dotnet outdated JarvisAssistant.sln --output dependency-report.json
+        
+        if [ -f dependency-report.json ]; then
+          echo "### Packages that can be updated:" >> dependency-report.md
+          cat dependency-report.json >> dependency-report.md
+        else
+          echo "✅ All packages are up to date!" >> dependency-report.md
+        fi
+
+    - name: Update packages (patch versions only)
+      run: |
+        # Update only patch versions to avoid breaking changes
+        dotnet outdated JarvisAssistant.sln --upgrade:patch --include-auto-references
+
+    - name: Test after updates
+      run: |
+        dotnet restore JarvisAssistant.sln
+        dotnet build JarvisAssistant.sln --configuration Release
+        dotnet test JarvisAssistant.sln --configuration Release --no-build
+
+    - name: Create Pull Request
+      uses: peter-evans/create-pull-request@v5
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        commit-message: 'chore: update NuGet packages (patch versions)'
+        title: 'Automated NuGet Package Updates (Patch)'
+        body: |
+          ## 🔄 Automated Dependency Updates
+          
+          This PR contains automated updates to NuGet packages (patch versions only).
+          
+          ### Changes Made
+          - Updated packages to latest patch versions
+          - Maintained compatibility with existing code
+          - All tests pass with updated dependencies
+          
+          ### Testing
+          - ✅ Solution builds successfully
+          - ✅ All unit tests pass
+          - ✅ No breaking changes detected
+          
+          ### Review Notes
+          - This PR only includes patch version updates
+          - Major and minor version updates require manual review
+          - Please verify all functionality before merging
+          
+          ---
+          *This PR was created automatically by the dependency update workflow*
+        branch: automated/dependency-updates
+        delete-branch: true
+
+    - name: Upload dependency report
+      uses: actions/upload-artifact@v4
+      with:
+        name: dependency-report
+        path: dependency-report.md
+
+  security-audit:
+    runs-on: ubuntu-latest
+    name: Security Audit
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Install .NET MAUI workload
+      run: dotnet workload install maui
+
+    - name: Restore dependencies
+      run: dotnet restore JarvisAssistant.sln
+
+    - name: Run security audit
+      run: |
+        echo "## Security Audit Report" > security-report.md
+        echo "Generated on: $(date)" >> security-report.md
+        echo "" >> security-report.md
+        
+        # Check for known vulnerabilities
+        dotnet list JarvisAssistant.sln package --vulnerable 2>&1 | tee -a security-report.md
+        
+        # Check for deprecated packages
+        echo "" >> security-report.md
+        echo "### Deprecated Packages" >> security-report.md
+        dotnet list JarvisAssistant.sln package --deprecated 2>&1 | tee -a security-report.md
+
+    - name: Upload security report
+      uses: actions/upload-artifact@v4
+      with:
+        name: security-audit-report
+        path: security-report.md
+
+    - name: Create security issue if vulnerabilities found
+      if: failure()
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          
+          try {
+            const report = fs.readFileSync('security-report.md', 'utf8');
+            
+            if (report.includes('vulnerable') || report.includes('deprecated')) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: '🚨 Security Vulnerabilities Detected',
+                body: `## Security Audit Alert
+                
+                Automated security audit has detected potential vulnerabilities or deprecated packages.
+                
+                ### Report Details
+                \`\`\`
+                ${report}
+                \`\`\`
+                
+                ### Action Required
+                - Review the security report
+                - Update vulnerable packages
+                - Consider replacing deprecated packages
+                
+                ### Auto-generated
+                This issue was created automatically by the security audit workflow.`,
+                labels: ['security', 'vulnerability', 'automated']
+              });
+            }
+          } catch (error) {
+            console.log('No security report found or no issues detected');
+          }
+
+  workload-update:
+    runs-on: ubuntu-latest
+    name: Update .NET Workloads
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Update .NET workloads
+      run: |
+        echo "## .NET Workload Update Report" > workload-report.md
+        echo "Generated on: $(date)" >> workload-report.md
+        echo "" >> workload-report.md
+        
+        # List current workloads
+        echo "### Current Workloads" >> workload-report.md
+        dotnet workload list >> workload-report.md
+        
+        # Update workloads
+        echo "" >> workload-report.md
+        echo "### Update Results" >> workload-report.md
+        dotnet workload update 2>&1 | tee -a workload-report.md
+        
+        # List updated workloads
+        echo "" >> workload-report.md
+        echo "### Updated Workloads" >> workload-report.md
+        dotnet workload list >> workload-report.md
+
+    - name: Test with updated workloads
+      run: |
+        dotnet workload install maui
+        dotnet restore JarvisAssistant.sln
+        dotnet build JarvisAssistant.sln --configuration Release
+
+    - name: Upload workload report
+      uses: actions/upload-artifact@v4
+      with:
+        name: workload-update-report
+        path: workload-report.md

@@ -1,0 +1,22 @@
+name: "CodeQL Config"
+
+disable-default-queries: false
+
+queries:
+  - name: security-and-quality
+    uses: security-and-quality
+  - name: security-extended
+    uses: security-extended
+
+paths-ignore:
+  - "**/*.Designer.cs"
+  - "**/bin/**"
+  - "**/obj/**"
+  - "**/*.generated.cs"
+  - "**/Platforms/**/*.g.cs"
+
+paths:
+  - "JarvisAssistant.Core/**"
+  - "JarvisAssistant.Services/**"
+  - "JarvisAssistant.Infrastructure/**"
+  - "JarvisAssistant.MAUI/**"

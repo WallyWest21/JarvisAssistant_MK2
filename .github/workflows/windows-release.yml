@@ -1,0 +1,218 @@
+name: Build Windows Store Package
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number (e.g., 1.0.0)'
+        required: true
+        default: '1.0.0'
+      create_release:
+        description: 'Create GitHub release'
+        type: boolean
+        default: true
+
+env:
+  DOTNET_VERSION: '8.0.x'
+
+jobs:
+  build-windows-store:
+    runs-on: windows-latest
+    name: Build Windows Store Package
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Install .NET MAUI workload
+      run: dotnet workload install maui
+
+    - name: Restore dependencies
+      run: dotnet restore JarvisAssistant.sln
+
+    - name: Update version in project file
+      shell: pwsh
+      run: |
+        $projectFile = "JarvisAssistant.MAUI/JarvisAssistant.MAUI.csproj"
+        $content = Get-Content $projectFile -Raw
+        $content = $content -replace '<ApplicationDisplayVersion>.*</ApplicationDisplayVersion>', '<ApplicationDisplayVersion>${{ github.event.inputs.version }}</ApplicationDisplayVersion>'
+        $content = $content -replace '<ApplicationVersion>.*</ApplicationVersion>', '<ApplicationVersion>${{ github.run_number }}</ApplicationVersion>'
+        Set-Content $projectFile $content
+
+    - name: Build Windows MSIX (Store Ready)
+      run: |
+        dotnet publish JarvisAssistant.MAUI/JarvisAssistant.MAUI.csproj `
+          -f net8.0-windows10.0.19041.0 `
+          -c Release `
+          -p:GenerateAppxPackageOnBuild=true `
+          -p:AppxPackageSigningEnabled=false `
+          -p:UapAppxPackageBuildMode=StoreUpload `
+          -p:AppxBundle=Always `
+          -p:PackageCertificateThumbprint="" `
+          -o ./artifacts/windows-store
+
+    - name: Build Windows MSIX (Sideload Ready)
+      run: |
+        dotnet publish JarvisAssistant.MAUI/JarvisAssistant.MAUI.csproj `
+          -f net8.0-windows10.0.19041.0 `
+          -c Release `
+          -p:GenerateAppxPackageOnBuild=true `
+          -p:AppxPackageSigningEnabled=false `
+          -p:UapAppxPackageBuildMode=SideloadOnly `
+          -p:AppxBundle=Always `
+          -p:PackageCertificateThumbprint="" `
+          -o ./artifacts/windows-sideload
+
+    - name: Build Windows Self-Contained Executable
+      run: |
+        dotnet publish JarvisAssistant.MAUI/JarvisAssistant.MAUI.csproj `
+          -f net8.0-windows10.0.19041.0 `
+          -c Release `
+          -p:WindowsPackageType=None `
+          -p:WindowsAppSDKSelfContained=true `
+          -p:SelfContained=true `
+          -p:PublishSingleFile=true `
+          -p:PublishTrimmed=false `
+          -o ./artifacts/windows-portable
+
+    - name: Rename package files
+      shell: pwsh
+      run: |
+        # Rename MSIX files for clarity
+        Get-ChildItem -Path "./artifacts/windows-store" -Filter "*.msix" | ForEach-Object {
+          $newName = "JarvisAssistant-${{ github.event.inputs.version }}-store.msix"
+          Rename-Item $_.FullName $newName
+        }
+        
+        Get-ChildItem -Path "./artifacts/windows-sideload" -Filter "*.msix" | ForEach-Object {
+          $newName = "JarvisAssistant-${{ github.event.inputs.version }}-sideload.msix"
+          Rename-Item $_.FullName $newName
+        }
+        
+        # Rename executable
+        Get-ChildItem -Path "./artifacts/windows-portable" -Filter "*.exe" | ForEach-Object {
+          $newName = "JarvisAssistant-${{ github.event.inputs.version }}-portable.exe"
+          Rename-Item $_.FullName $newName
+        }
+
+    - name: Create Windows installer using Inno Setup
+      shell: pwsh
+      run: |
+        # Download and install Inno Setup
+        Invoke-WebRequest -Uri "https://jrsoftware.org/download.php/is.exe" -OutFile "innosetup.exe"
+        Start-Process -FilePath "innosetup.exe" -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART" -Wait
+        
+        # Create Inno Setup script
+        $issContent = @"
+        [Setup]
+        AppId={{8073BE94-D1F0-4E2B-A87F-9E01E1C2BABA}
+        AppName=Jarvis Assistant
+        AppVersion=${{ github.event.inputs.version }}
+        AppPublisher=Your Company Name
+        AppPublisherURL=https://github.com/${{ github.repository }}
+        AppSupportURL=https://github.com/${{ github.repository }}/issues
+        AppUpdatesURL=https://github.com/${{ github.repository }}/releases
+        DefaultDirName={autopf}\JarvisAssistant
+        DisableProgramGroupPage=yes
+        LicenseFile=LICENSE
+        OutputDir=./artifacts/windows-installer
+        OutputBaseFilename=JarvisAssistant-${{ github.event.inputs.version }}-setup
+        SetupIconFile=JarvisAssistant.MAUI\Resources\AppIcon\appicon.ico
+        Compression=lzma
+        SolidCompression=yes
+        WizardStyle=modern
+        ArchitecturesAllowed=x64
+        ArchitecturesInstallIn64BitMode=x64
+        
+        [Languages]
+        Name: "english"; MessagesFile: "compiler:Default.isl"
+        
+        [Tasks]
+        Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
+        
+        [Files]
+        Source: "./artifacts/windows-portable/*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+        
+        [Icons]
+        Name: "{autoprograms}\Jarvis Assistant"; Filename: "{app}\JarvisAssistant-${{ github.event.inputs.version }}-portable.exe"
+        Name: "{autodesktop}\Jarvis Assistant"; Filename: "{app}\JarvisAssistant-${{ github.event.inputs.version }}-portable.exe"; Tasks: desktopicon
+        
+        [Run]
+        Filename: "{app}\JarvisAssistant-${{ github.event.inputs.version }}-portable.exe"; Description: "{cm:LaunchProgram,Jarvis Assistant}"; Flags: nowait postinstall skipifsilent
+        "@
+        
+        $issContent | Out-File -FilePath "installer.iss" -Encoding UTF8
+        
+        # Compile installer
+        & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "installer.iss"
+
+    - name: Upload Windows artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: windows-release
+        path: |
+          ./artifacts/windows-store/*.msix
+          ./artifacts/windows-sideload/*.msix
+          ./artifacts/windows-portable/*.exe
+          ./artifacts/windows-installer/*.exe
+
+    - name: Create Release
+      if: ${{ github.event.inputs.create_release == 'true' }}
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v${{ github.event.inputs.version }}-windows
+        release_name: Jarvis Assistant v${{ github.event.inputs.version }} - Windows
+        body: |
+          ## Jarvis Assistant v${{ github.event.inputs.version }} - Windows Release
+          
+          ### 🪟 Windows Packages
+          - **Store MSIX**: Ready for Microsoft Store submission
+          - **Sideload MSIX**: For manual installation via PowerShell
+          - **Portable EXE**: Self-contained executable (no installation required)
+          - **Installer EXE**: Traditional Windows installer with uninstall support
+          
+          ### 🔧 Build Information
+          - Build Number: ${{ github.run_number }}
+          - Target Framework: .NET 8 Windows
+          - Minimum Windows Version: Windows 10 version 19041.0
+          
+          ### 📥 Installation Instructions
+          
+          #### Microsoft Store Package (MSIX)
+          ```powershell
+          # Install via PowerShell (requires Developer Mode)
+          Add-AppxPackage -Path "JarvisAssistant-${{ github.event.inputs.version }}-sideload.msix"
+          ```
+          
+          #### Portable Version
+          1. Download `JarvisAssistant-${{ github.event.inputs.version }}-portable.exe`
+          2. Run directly - no installation required
+          3. All dependencies are included
+          
+          #### Traditional Installer
+          1. Download `JarvisAssistant-${{ github.event.inputs.version }}-setup.exe`
+          2. Run as administrator
+          3. Follow installation wizard
+          4. Creates Start Menu and Desktop shortcuts
+          
+          ### ⚠️ System Requirements
+          - Windows 10 version 19041.0 or later
+          - .NET 8 Runtime (included in self-contained builds)
+          - Minimum 4GB RAM recommended
+          - 500MB free disk space
+          
+          ### 🔒 Security Notes
+          - Packages are unsigned - you may see Windows Defender warnings
+          - For production deployment, consider code signing certificates
+          - MSIX packages require Developer Mode or enterprise deployment
+        draft: false
+        prerelease: false

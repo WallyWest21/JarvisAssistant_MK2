@@ -1,0 +1,314 @@
+name: .NET MAUI CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop, Voice-Fix ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+env:
+  DOTNET_VERSION: '8.0.x'
+  MAUI_VERSION: '8.0.x'
+  JAVA_VERSION: '11'
+  ANDROID_API_LEVEL: '34'
+  ANDROID_BUILD_TOOLS_VERSION: '34.0.0'
+
+jobs:
+  # Build and Test Job
+  build-and-test:
+    runs-on: ubuntu-latest
+    name: Build and Test
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Install .NET MAUI workload
+      run: dotnet workload install maui
+
+    - name: Restore dependencies
+      run: dotnet restore JarvisAssistant.sln
+
+    - name: Build solution
+      run: dotnet build JarvisAssistant.sln --configuration Release --no-restore
+
+    - name: Run unit tests
+      run: dotnet test JarvisAssistant.sln --configuration Release --no-build --verbosity normal --collect:"XPlat Code Coverage" --results-directory ./coverage
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results
+        path: ./coverage/
+
+  # Android Build Job
+  build-android:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    name: Build Android
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Setup Java JDK
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'microsoft'
+        java-version: ${{ env.JAVA_VERSION }}
+
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+
+    - name: Install Android SDK components
+      run: |
+        sdkmanager "platform-tools" "platforms;android-${{ env.ANDROID_API_LEVEL }}" "build-tools;${{ env.ANDROID_BUILD_TOOLS_VERSION }}"
+
+    - name: Install .NET MAUI workload
+      run: dotnet workload install maui
+
+    - name: Restore dependencies
+      run: dotnet restore JarvisAssistant.sln
+
+    - name: Build Android APK
+      run: |
+        dotnet publish JarvisAssistant.MAUI/JarvisAssistant.MAUI.csproj \
+          -f net8.0-android \
+          -c Release \
+          -p:AndroidSdkDirectory=$ANDROID_SDK_ROOT \
+          -p:AndroidNdkDirectory=$ANDROID_NDK_ROOT \
+          -o ./artifacts/android
+
+    - name: Build Android TV APK
+      run: |
+        dotnet publish JarvisAssistant.MAUI/JarvisAssistant.MAUI.csproj \
+          -f net8.0-android \
+          -c Release \
+          -p:AndroidSdkDirectory=$ANDROID_SDK_ROOT \
+          -p:AndroidNdkDirectory=$ANDROID_NDK_ROOT \
+          -p:AndroidApplication=true \
+          -p:AndroidUseSharedRuntime=false \
+          -p:AndroidLinkMode=SdkOnly \
+          -p:AndroidEnableProfiledAot=false \
+          -p:RunAOTCompilation=false \
+          -p:AndroidPackageFormat=apk \
+          -o ./artifacts/android-tv
+
+    - name: Upload Android APK artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: android-apk
+        path: |
+          ./artifacts/android/**/*.apk
+          ./artifacts/android-tv/**/*.apk
+
+  # Windows Build Job
+  build-windows:
+    needs: build-and-test
+    runs-on: windows-latest
+    name: Build Windows
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Install .NET MAUI workload
+      run: dotnet workload install maui
+
+    - name: Restore dependencies
+      run: dotnet restore JarvisAssistant.sln
+
+    - name: Build Windows MSIX (Unpackaged)
+      run: |
+        dotnet publish JarvisAssistant.MAUI/JarvisAssistant.MAUI.csproj `
+          -f net8.0-windows10.0.19041.0 `
+          -c Release `
+          -p:WindowsPackageType=None `
+          -p:WindowsAppSDKSelfContained=true `
+          -p:PublishProfile=win10-x64 `
+          -o ./artifacts/windows-unpackaged
+
+    - name: Build Windows MSIX (Packaged)
+      run: |
+        dotnet publish JarvisAssistant.MAUI/JarvisAssistant.MAUI.csproj `
+          -f net8.0-windows10.0.19041.0 `
+          -c Release `
+          -p:GenerateAppxPackageOnBuild=true `
+          -p:AppxPackageSigningEnabled=false `
+          -o ./artifacts/windows-packaged
+
+    - name: Upload Windows artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: windows-app
+        path: |
+          ./artifacts/windows-unpackaged/**
+          ./artifacts/windows-packaged/**/*.msix
+
+  # Security and Quality Analysis
+  security-analysis:
+    runs-on: ubuntu-latest
+    name: Security Analysis
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Restore dependencies
+      run: dotnet restore JarvisAssistant.sln
+
+    - name: Run CodeQL Analysis
+      uses: github/codeql-action/init@v3
+      with:
+        languages: csharp
+        config-file: ./.github/codeql/codeql-config.yml
+
+    - name: Build for analysis
+      run: dotnet build JarvisAssistant.sln --configuration Release
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+
+  # Performance Testing (Optional)
+  performance-test:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    name: Performance Tests
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Install .NET MAUI workload
+      run: dotnet workload install maui
+
+    - name: Restore dependencies
+      run: dotnet restore JarvisAssistant.sln
+
+    - name: Run performance tests
+      run: dotnet test JarvisAssistant.sln --configuration Release --filter "Category=Performance" --logger "trx;LogFileName=performance-results.trx"
+
+    - name: Upload performance test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: performance-test-results
+        path: "**/performance-results.trx"
+
+  # Release Job (Only on main branch)
+  release:
+    needs: [build-android, build-windows, security-analysis]
+    runs-on: ubuntu-latest
+    name: Create Release
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Download Android artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: android-apk
+        path: ./release/android
+
+    - name: Download Windows artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: windows-app
+        path: ./release/windows
+
+    - name: Generate release tag
+      id: tag
+      run: echo "tag=v$(date +'%Y.%m.%d')-${{ github.run_number }}" >> $GITHUB_OUTPUT
+
+    - name: Create Release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.tag.outputs.tag }}
+        release_name: Jarvis Assistant ${{ steps.tag.outputs.tag }}
+        body: |
+          ## What's Changed
+          * Automated release from main branch
+          * Includes Android APK (Phone & TV)
+          * Includes Windows MSIX package
+          
+          ## Installation
+          ### Android
+          - Download and install the APK file
+          - For Android TV, use the TV-specific APK
+          
+          ### Windows
+          - Download and install the MSIX package
+          - Ensure Windows 10 version 19041.0 or higher
+          
+          **Full Changelog**: https://github.com/${{ github.repository }}/compare/previous...${{ steps.tag.outputs.tag }}
+        draft: false
+        prerelease: false
+
+  # Notification Job
+  notify:
+    needs: [build-android, build-windows, security-analysis]
+    runs-on: ubuntu-latest
+    name: Notifications
+    if: always()
+
+    steps:
+    - name: Notify on success
+      if: ${{ needs.build-android.result == 'success' && needs.build-windows.result == 'success' && needs.security-analysis.result == 'success' }}
+      run: |
+        echo "✅ All builds completed successfully!"
+        echo "🤖 Android builds: ${{ needs.build-android.result }}"
+        echo "🪟 Windows builds: ${{ needs.build-windows.result }}"
+        echo "🔒 Security analysis: ${{ needs.security-analysis.result }}"
+
+    - name: Notify on failure
+      if: ${{ needs.build-android.result == 'failure' || needs.build-windows.result == 'failure' || needs.security-analysis.result == 'failure' }}
+      run: |
+        echo "❌ One or more builds failed!"
+        echo "🤖 Android builds: ${{ needs.build-android.result }}"
+        echo "🪟 Windows builds: ${{ needs.build-windows.result }}"
+        echo "🔒 Security analysis: ${{ needs.security-analysis.result }}"
+        exit 1
