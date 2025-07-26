@@ -10,8 +10,8 @@ Console.WriteLine("=== ElevenLabs Integration Demo ===");
 // 1. Configuration is ready
 var config = new ElevenLabsConfig
 {
-    ApiKey = Environment.GetEnvironmentVariable("ELEVENLABS_API_KEY") ?? "your-api-key-here",
-    VoiceId = "EXAVITQu4vr4xnSDxMaL", // British accent for Jarvis
+    ApiKey = Environment.GetEnvironmentVariable("ELEVENLABS_API_KEY") ?? "sk_572262d27043d888785a02694bc21fbdc70b548cc017b119",
+    VoiceId = "91AxxCADnelg9FDuKsIS", // Updated voice ID for Jarvis
     EnableCaching = true,
     EnableStreaming = true,
     EnableFallback = true

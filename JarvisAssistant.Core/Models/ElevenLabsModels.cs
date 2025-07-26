@@ -65,17 +65,7 @@ namespace JarvisAssistant.Core.Models
         /// When the quota resets.
         /// </summary>
         [JsonPropertyName("next_character_count_reset_unix")]
-        public long NextResetUnix { get; set; }
-
-        /// <summary>
-        /// When the quota resets (alternative property name for compatibility).
-        /// </summary>
-        [JsonPropertyName("next_character_count_reset_unix")]
-        public long NextCharacterCountResetUnix 
-        { 
-            get => NextResetUnix; 
-            set => NextResetUnix = value; 
-        }
+        public long NextCharacterCountResetUnix { get; set; }
 
         /// <summary>
         /// Whether the character limit can be extended.
@@ -92,7 +82,7 @@ namespace JarvisAssistant.Core.Models
         /// <summary>
         /// Gets the next reset time as a DateTime.
         /// </summary>
-        public DateTime NextResetTime => DateTimeOffset.FromUnixTimeSeconds(NextResetUnix).DateTime;
+        public DateTime NextResetTime => DateTimeOffset.FromUnixTimeSeconds(NextCharacterCountResetUnix).DateTime;
 
         /// <summary>
         /// Gets the percentage of quota used.

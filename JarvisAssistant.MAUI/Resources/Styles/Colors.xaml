@@ -34,6 +34,20 @@
     <Color x:Key="Red">#F44336</Color>
     <Color x:Key="RedDark">#D32F2F</Color>
 
+    <!-- JARVIS Theme Colors -->
+    <Color x:Key="JarvisDarkBackground">#0D1117</Color>
+    <Color x:Key="JarvisAccentDark">#1C2128</Color>
+    <Color x:Key="JarvisCyan">#00D4FF</Color>
+    <Color x:Key="JarvisPrimary">#00D4FF</Color>
+    <Color x:Key="JarvisSecondary">#4A9EFF</Color>
+    <Color x:Key="JarvisGold">#FFD700</Color>
+    <Color x:Key="JarvisTextPrimary">#F0F6FC</Color>
+    <Color x:Key="JarvisTextSecondary">#8B949E</Color>
+    <Color x:Key="JarvisTextTertiary">#6E7681</Color>
+    <Color x:Key="JarvisError">#FF5722</Color>
+    <Color x:Key="JarvisWarning">#FFC107</Color>
+    <Color x:Key="JarvisSuccess">#4CAF50</Color>
+
     <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource Primary}"/>
     <SolidColorBrush x:Key="SecondaryBrush" Color="{StaticResource Secondary}"/>
     <SolidColorBrush x:Key="TertiaryBrush" Color="{StaticResource Tertiary}"/>
@@ -50,4 +64,16 @@
     <SolidColorBrush x:Key="Gray700Brush" Color="{StaticResource Gray700}"/>
     <SolidColorBrush x:Key="Gray900Brush" Color="{StaticResource Gray900}"/>
     <SolidColorBrush x:Key="Gray950Brush" Color="{StaticResource Gray950}"/>
+
+    <!-- JARVIS Theme Brushes -->
+    <SolidColorBrush x:Key="JarvisDarkBackgroundBrush" Color="{StaticResource JarvisDarkBackground}"/>
+    <SolidColorBrush x:Key="JarvisAccentDarkBrush" Color="{StaticResource JarvisAccentDark}"/>
+    <SolidColorBrush x:Key="JarvisCyanBrush" Color="{StaticResource JarvisCyan}"/>
+    <SolidColorBrush x:Key="JarvisPrimaryBrush" Color="{StaticResource JarvisPrimary}"/>
+    <SolidColorBrush x:Key="JarvisSecondaryBrush" Color="{StaticResource JarvisSecondary}"/>
+    <SolidColorBrush x:Key="JarvisGoldBrush" Color="{StaticResource JarvisGold}"/>
+    <SolidColorBrush x:Key="JarvisTextPrimaryBrush" Color="{StaticResource JarvisTextPrimary}"/>
+    <SolidColorBrush x:Key="JarvisTextSecondaryBrush" Color="{StaticResource JarvisTextSecondary}"/>
+    <SolidColorBrush x:Key="JarvisTextTertiaryBrush" Color="{StaticResource JarvisTextTertiary}"/>
+
 </ResourceDictionary>

@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:gravity="center"
+    android:background="@color/jarvis_dark_bg"
+    android:padding="32dp">
+
+    <!-- Jarvis Logo -->
+    <ImageView
+        android:layout_width="120dp"
+        android:layout_height="120dp"
+        android:src="@drawable/jarvis_logo"
+        android:layout_marginBottom="24dp"
+        android:contentDescription="Jarvis Assistant Logo" />
+
+    <!-- App Title -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="JARVIS Assistant"
+        android:textSize="32sp"
+        android:textColor="@color/jarvis_cyan"
+        android:fontFamily="sans-serif-light"
+        android:layout_marginBottom="8dp" />
+
+    <!-- Subtitle -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Your AI Companion"
+        android:textSize="16sp"
+        android:textColor="@color/jarvis_blue"
+        android:fontFamily="sans-serif-light"
+        android:layout_marginBottom="32dp" />
+
+    <!-- Progress Indicator -->
+    <ProgressBar
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:indeterminateTint="@color/jarvis_cyan"
+        android:layout_marginBottom="16dp" />
+
+    <!-- Status Text -->
+    <TextView
+        android:id="@+id/status_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Initializing systems..."
+        android:textSize="14sp"
+        android:textColor="@color/jarvis_text_secondary"
+        android:fontFamily="sans-serif" />
+
+</LinearLayout>

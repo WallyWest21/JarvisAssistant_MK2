@@ -349,7 +349,7 @@ namespace JarvisAssistant.UnitTests.Services
                 CharacterCount = 1000,
                 CharacterLimit = 10000,
                 CharactersRemaining = 9000,
-                NextResetUnix = DateTimeOffset.UtcNow.AddDays(1).ToUnixTimeSeconds()
+                NextCharacterCountResetUnix = DateTimeOffset.UtcNow.AddDays(1).ToUnixTimeSeconds()
             };
 
             var jsonResponse = JsonSerializer.Serialize(quotaResponse, new JsonSerializerOptions

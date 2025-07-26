@@ -105,7 +105,7 @@ namespace JarvisAssistant.Services.Extensions
             return services.AddElevenLabsVoiceService(config =>
             {
                 config.ApiKey = apiKey;
-                config.VoiceId = "EXAVITQu4vr4xnSDxMaL"; // British accent voice
+                config.VoiceId = "91AxxCADnelg9FDuKsIS"; // Updated voice ID for Jarvis
                 config.DefaultVoiceSettings = VoiceSettings.CreateJarvisSettings();
                 config.ModelId = "eleven_multilingual_v2";
                 config.AudioFormat = "mp3_44100_128";

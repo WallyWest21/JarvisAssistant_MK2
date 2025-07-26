@@ -202,7 +202,7 @@ namespace JarvisAssistant.UnitTests.Integration
             // Assert
             var config = provider.GetRequiredService<ElevenLabsConfig>();
             Assert.Equal("test-api-key", config.ApiKey);
-            Assert.Equal("EXAVITQu4vr4xnSDxMaL", config.VoiceId); // British accent voice
+            Assert.Equal("91AxxCADnelg9FDuKsIS", config.VoiceId); // Updated voice ID for Jarvis
             Assert.True(config.EnableStreaming);
             Assert.True(config.EnableCaching);
             Assert.Equal(0.9f, config.DefaultVoiceSettings.SpeakingRate); // Measured pace

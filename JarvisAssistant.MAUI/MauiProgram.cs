@@ -78,6 +78,14 @@ public static class MauiProgram
 			services.AddSingleton<IPlatformService, PlatformService>();
 			services.AddSingleton<IThemeManager, MauiThemeManager>();
 			
+			// Register production-ready services
+			services.AddSingleton<ITelemetryService, TelemetryService>();
+			services.AddSingleton<IStartupService, StartupService>();
+			services.AddSingleton<IOnboardingService, OnboardingService>();
+			services.AddSingleton<IDeploymentService, DeploymentService>();
+			services.AddSingleton<IPerformanceOptimizationService, Rtx3060OptimizationService>();
+			services.AddSingleton<IPreferencesService, MauiPreferencesService>();
+			
 			// Register MAUI abstraction services using Core interfaces
 			services.AddSingleton<JarvisAssistant.Core.Interfaces.IDialogService, MauiDialogService>();
 			services.AddSingleton<JarvisAssistant.Core.Interfaces.INavigationService, MauiNavigationService>();

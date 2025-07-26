@@ -3,8 +3,8 @@
 
 Write-Host "Setting ElevenLabs API Key for Jarvis..." -ForegroundColor Green
 
-# Prompt for API key
-$apiKey = Read-Host "Enter your ElevenLabs API key" -MaskedInput
+# Set the API key directly
+$apiKey = "sk_572262d27043d888785a02694bc21fbdc70b548cc017b119"
 
 if ($apiKey) {
     # Set environment variable for current session

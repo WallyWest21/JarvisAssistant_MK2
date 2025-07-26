@@ -1,0 +1,66 @@
+<!-- MSI Installer Configuration -->
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product Id="*" 
+           Name="JARVIS Assistant" 
+           Language="1033" 
+           Version="1.0.0.0" 
+           Manufacturer="JARVIS Team" 
+           UpgradeCode="12345678-1234-1234-1234-123456789012">
+    
+    <Package InstallerVersion="200" 
+             Compressed="yes" 
+             InstallScope="perMachine"
+             Description="JARVIS Assistant - Your AI Companion" />
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <Feature Id="ProductFeature" Title="JARVIS Assistant" Level="1">
+      <ComponentGroupRef Id="ProductComponents" />
+    </Feature>
+
+    <!-- App Icon -->
+    <Icon Id="JarvisIcon" SourceFile="Resources\Images\jarvis_icon.ico" />
+    <Property Id="ARPPRODUCTICON" Value="JarvisIcon" />
+
+    <!-- Installation Directory -->
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFilesFolder">
+        <Directory Id="INSTALLFOLDER" Name="JARVIS Assistant" />
+      </Directory>
+      <Directory Id="ProgramMenuFolder">
+        <Directory Id="ApplicationProgramsFolder" Name="JARVIS Assistant" />
+      </Directory>
+    </Directory>
+
+    <!-- Components -->
+    <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
+      <Component Id="MainExecutable">
+        <File Id="JarvisAssistantEXE" 
+              Source="$(var.PublishDir)\JarvisAssistant.MAUI.exe" 
+              KeyPath="yes">
+          <Shortcut Id="ApplicationStartMenuShortcut"
+                    Directory="ApplicationProgramsFolder"
+                    Name="JARVIS Assistant"
+                    Description="Your AI Companion"
+                    WorkingDirectory="INSTALLFOLDER" />
+        </File>
+      </Component>
+      
+      <!-- Additional files -->
+      <Component Id="RuntimeFiles">
+        <File Source="$(var.PublishDir)\*" />
+      </Component>
+    </ComponentGroup>
+
+    <!-- Auto-update registry -->
+    <Component Id="AutoUpdateRegistry" Directory="INSTALLFOLDER">
+      <RegistryKey Root="HKLM" Key="SOFTWARE\JARVIS Assistant">
+        <RegistryValue Name="InstallPath" Type="string" Value="[INSTALLFOLDER]" KeyPath="yes" />
+        <RegistryValue Name="Version" Type="string" Value="1.0.0" />
+        <RegistryValue Name="AutoUpdate" Type="string" Value="true" />
+      </RegistryKey>
+    </Component>
+
+  </Product>
+</Wix>

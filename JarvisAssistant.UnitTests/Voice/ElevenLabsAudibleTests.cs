@@ -48,7 +48,7 @@ namespace JarvisAssistant.UnitTests.Voice
             services.AddElevenLabsVoiceService(config =>
             {
                 // IMPORTANT: Replace with your actual ElevenLabs API key
-                config.ApiKey = Environment.GetEnvironmentVariable("ELEVENLABS_API_KEY") ?? "your-actual-api-key-here";
+                config.ApiKey = Environment.GetEnvironmentVariable("ELEVENLABS_API_KEY") ?? "sk_572262d27043d888785a02694bc21fbdc70b548cc017b119";
                 config.VoiceId = "21m00Tcm4TlvDq8ikWAM"; // Rachel voice ID
                 config.EnableCaching = false; // Disable cache for real testing
                 config.EnableFallback = true;

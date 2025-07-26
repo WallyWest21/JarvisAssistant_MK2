@@ -32,7 +32,7 @@ namespace JarvisAssistant.ElevenLabs.IntegrationTests
             _config = new ElevenLabsConfig
             {
                 ApiKey = "test-api-key",
-                VoiceId = "EXAVITQu4vr4xnSDxMaL", // British accent voice
+                VoiceId = "91AxxCADnelg9FDuKsIS", // Updated voice ID for Jarvis
                 ModelId = "eleven_multilingual_v2",
                 BaseUrl = "https://api.elevenlabs.io",
                 EnableCaching = true,

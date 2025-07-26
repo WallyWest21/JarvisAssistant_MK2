@@ -13,9 +13,9 @@ namespace JarvisAssistant.Core.Models
         public string? ApiKey { get; set; }
 
         /// <summary>
-        /// Voice ID to use for Jarvis. If not specified, uses a default British accent voice.
+        /// Voice ID to use for Jarvis. If not specified, uses a default voice.
         /// </summary>
-        public string? VoiceId { get; set; } = "EXAVITQu4vr4xnSDxMaL"; // Default to British accent voice
+        public string? VoiceId { get; set; } = "91AxxCADnelg9FDuKsIS"; // Updated voice ID for Jarvis
 
         /// <summary>
         /// Base URL for ElevenLabs API.
