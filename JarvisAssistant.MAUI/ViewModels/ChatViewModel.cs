@@ -6,6 +6,15 @@ using JarvisAssistant.Core.Interfaces;
 using JarvisAssistant.Core.Models;
 using JarvisAssistant.MAUI.Models;
 using Microsoft.Extensions.Logging;
+using System.Text.Json;
+using System.Text;
+using System.Net.Http;
+using System.Diagnostics;
+using System.Net.Http.Headers;
+using MediaManager;
+#if WINDOWS
+using System.Speech.Synthesis;
+#endif
 
 namespace JarvisAssistant.MAUI.ViewModels
 {
@@ -203,6 +212,45 @@ namespace JarvisAssistant.MAUI.ViewModels
                 };
                 Messages.Add(responseMessage);
 
+                // Generate speech for the response if voice mode is active and voice service is available
+                if (isVoiceModeActive && _voiceService != null && !string.IsNullOrWhiteSpace(response.Message))
+                {
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            _logger?.LogInformation("🎯 FORCING ElevenLabs for chat response: '{Message}'", response.Message);
+                            
+                            // DIRECT ELEVENLABS CALL - BYPASS THE BROKEN SERVICE INJECTION
+                            var audioData = await CallElevenLabsDirectly(response.Message);
+                            
+                            if (audioData != null && audioData.Length > 0)
+                            {
+                                _logger?.LogInformation("✅ Playing ElevenLabs audio ({Size} bytes)", audioData.Length);
+                                await PlayChatResponseAudio(audioData);
+                            }
+                            else
+                            {
+                                _logger?.LogWarning("❌ ElevenLabs failed, using direct Windows speech");
+                                // Fallback to direct speech (no WAV files, no beeping)
+                                await SpeakDirectly(response.Message);
+                            }
+                        }
+                        catch (Exception audioEx)
+                        {
+                            _logger?.LogError(audioEx, "Failed ElevenLabs, falling back to direct speech");
+                            try
+                            {
+                                await SpeakDirectly(response.Message);
+                            }
+                            catch (Exception fallbackEx)
+                            {
+                                _logger?.LogError(fallbackEx, "All TTS methods failed");
+                            }
+                        }
+                    });
+                }
+
                 // Auto-scroll to bottom
                 WeakReferenceMessenger.Default.Send("ScrollToBottom");
             }
@@ -332,6 +380,140 @@ namespace JarvisAssistant.MAUI.ViewModels
             }
         }
 
+        /// <summary>
+        /// Plays audio data for chat responses when voice mode is active using cross-platform MediaManager.
+        /// </summary>
+        /// <param name="audioData">The audio data to play.</param>
+        private async Task PlayChatResponseAudio(byte[] audioData)
+        {
+            try
+            {
+                // ElevenLabs returns MP3 data - save as MP3 and use MediaManager for cross-platform playback
+                var tempFile = Path.GetTempFileName();
+                var audioFile = Path.ChangeExtension(tempFile, ".mp3");
+
+                _logger?.LogInformation("🎵 Saving ElevenLabs MP3 audio to: {AudioFile}", audioFile);
+                await File.WriteAllBytesAsync(audioFile, audioData);
+
+                try
+                {
+                    _logger?.LogInformation("🎵 Playing MP3 using MediaManager (cross-platform)");
+                    
+                    // Use MediaManager for cross-platform audio playback
+                    await CrossMediaManager.Current.Play(audioFile);
+                    
+                    // Wait for playback to complete
+                    while (CrossMediaManager.Current.IsPlaying())
+                    {
+                        await Task.Delay(100);
+                    }
+                    
+                    _logger?.LogInformation("✅ MediaManager playback completed");
+                }
+                catch (Exception mediaEx)
+                {
+                    _logger?.LogError(mediaEx, "MediaManager failed, trying platform-specific fallback");
+                    
+                    // Platform-specific fallback
+#if WINDOWS
+                    try
+                    {
+                        // Windows COM object fallback
+                        await Task.Run(() =>
+                        {
+                            dynamic wmp = Activator.CreateInstance(Type.GetTypeFromProgID("WMPlayer.OCX"));
+                            wmp.URL = audioFile;
+                            wmp.controls.play();
+                            
+                            while (wmp.playState != 1 && wmp.playState != 8)
+                            {
+                                System.Threading.Thread.Sleep(100);
+                            }
+                            
+                            wmp.close();
+                            System.Runtime.InteropServices.Marshal.ReleaseComObject(wmp);
+                        });
+                        
+                        _logger?.LogInformation("✅ Windows COM fallback completed");
+                    }
+                    catch (Exception comEx)
+                    {
+                        _logger?.LogError(comEx, "Windows COM fallback failed");
+                    }
+#else
+                    // For other platforms (Android, iOS), MediaManager should handle it
+                    _logger?.LogWarning("MediaManager failed on non-Windows platform, no additional fallback available");
+#endif
+                }
+                finally
+                {
+                    // Clean up temp file after a delay to allow playback completion
+                    _ = Task.Run(async () =>
+                    {
+                        await Task.Delay(10000); // Wait 10 seconds
+                        try
+                        {
+                            if (File.Exists(audioFile))
+                                File.Delete(audioFile);
+                        }
+                        catch { }
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Error in PlayChatResponseAudio");
+            }
+        }
+
+        /// <summary>
+        /// Checks if the audio data already contains WAV file headers.
+        /// </summary>
+        private static bool IsWavFile(byte[] audioData)
+        {
+            if (audioData.Length < 12) return false;
+            
+            return audioData[0] == 0x52 && audioData[1] == 0x49 && 
+                   audioData[2] == 0x46 && audioData[3] == 0x46 && // "RIFF"
+                   audioData[8] == 0x57 && audioData[9] == 0x41 && 
+                   audioData[10] == 0x56 && audioData[11] == 0x45; // "WAVE"
+        }
+
+        /// <summary>
+        /// Creates a WAV file with proper headers from raw PCM audio data.
+        /// </summary>
+        private static byte[] CreateWavFile(byte[] audioData, int sampleRate, int channels, int bitsPerSample)
+        {
+            var bytesPerSample = bitsPerSample / 8;
+            var blockAlign = channels * bytesPerSample;
+            var byteRate = sampleRate * blockAlign;
+
+            using var wav = new MemoryStream();
+            using var writer = new BinaryWriter(wav);
+
+            // RIFF header
+            writer.Write("RIFF".ToCharArray());
+            writer.Write(36 + audioData.Length);
+            writer.Write("WAVE".ToCharArray());
+
+            // Format chunk
+            writer.Write("fmt ".ToCharArray());
+            writer.Write(16); // PCM format chunk size
+            writer.Write((short)1); // PCM format
+            writer.Write((short)channels);
+            writer.Write(sampleRate);
+            writer.Write(byteRate);
+            writer.Write((short)blockAlign);
+            writer.Write((short)bitsPerSample);
+
+            // Data chunk
+            writer.Write("data".ToCharArray());
+            writer.Write(audioData.Length);
+            writer.Write(audioData);
+
+            return wav.ToArray();
+        }
+
         [RelayCommand]
         private async Task RefreshConversationAsync()
         {
@@ -386,6 +568,79 @@ namespace JarvisAssistant.MAUI.ViewModels
         public void UpdateVoiceActivityLevel(double level)
         {
             VoiceActivityLevel = Math.Max(0, Math.Min(1, level));
+        }
+
+        /// <summary>
+        /// Direct ElevenLabs API call to bypass broken service injection
+        /// </summary>
+        private async Task<byte[]> CallElevenLabsDirectly(string text)
+        {
+            try
+            {
+                using var httpClient = new HttpClient();
+                httpClient.DefaultRequestHeaders.Add("xi-api-key", "sk_572262d27043d888785a02694bc21fbdc70b548cc017b119");
+                
+                var requestBody = new
+                {
+                    text = text,
+                    voice_settings = new
+                    {
+                        stability = 0.4f,
+                        similarity_boost = 0.9f,
+                        style = 0.2f,
+                        use_speaker_boost = true
+                    }
+                };
+                
+                var json = System.Text.Json.JsonSerializer.Serialize(requestBody);
+                var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+                
+                var response = await httpClient.PostAsync("https://api.elevenlabs.io/v1/text-to-speech/91AxxCADnelg9FDuKsIS", content);
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    _logger?.LogInformation("🎉 ElevenLabs API call successful!");
+                    return await response.Content.ReadAsByteArrayAsync();
+                }
+                else
+                {
+                    _logger?.LogWarning("ElevenLabs API failed: {StatusCode}", response.StatusCode);
+                    return Array.Empty<byte>();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Direct ElevenLabs call failed");
+                return Array.Empty<byte>();
+            }
+        }
+
+        /// <summary>
+        /// Direct Windows speech without WAV files (no beeping)
+        /// </summary>
+        private async Task SpeakDirectly(string text)
+        {
+#if WINDOWS
+            if (OperatingSystem.IsWindows())
+            {
+                await Task.Run(() =>
+                {
+                    try
+                    {
+                        using var synthesizer = new System.Speech.Synthesis.SpeechSynthesizer();
+                        synthesizer.SetOutputToDefaultAudioDevice();
+                        synthesizer.Rate = 0;
+                        synthesizer.Volume = 80;
+                        synthesizer.Speak(text);
+                        _logger?.LogInformation("✅ Direct Windows speech completed (no beeping)");
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger?.LogError(ex, "Direct Windows speech failed");
+                    }
+                });
+            }
+#endif
         }
     }
 }
