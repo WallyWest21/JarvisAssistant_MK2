@@ -2,6 +2,7 @@
 using Android.Content.PM;
 using Android.OS;
 using Android.Views;
+using Android;
 using JarvisAssistant.Core.Interfaces;
 using JarvisAssistant.MAUI.Platforms.Android.VoiceHandlers;
 using Microsoft.Extensions.DependencyInjection;
@@ -24,8 +25,28 @@ public class MainActivity : MauiAppCompatActivity
 		{
 			base.OnCreate(savedInstanceState);
 			
+			// Request speech recognition permissions on startup for newer Android versions
+			if (Build.VERSION.SdkInt >= BuildVersionCodes.M)
+			{
+				try
+				{
+					RequestPermissions(new[] { Manifest.Permission.RecordAudio }, 1001);
+				}
+				catch (Exception ex)
+				{
+					System.Diagnostics.Debug.WriteLine($"Permission request failed: {ex.Message}");
+				}
+			}
+			
 			// Initialize MediaManager for Android
-			CrossMediaManager.Current.Init(this);
+			try
+			{
+				CrossMediaManager.Current.Init(this);
+			}
+			catch (Exception ex)
+			{
+				System.Diagnostics.Debug.WriteLine($"MediaManager initialization failed: {ex.Message}");
+			}
 			
 			// Initialize voice handler for Google TV
 			InitializeVoiceHandler();

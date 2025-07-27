@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Permissions for Speech Recognition -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    
+    <!-- Optional: For speech recognition that might use network services -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    
+    <!-- Microphone feature requirement -->
+    <uses-feature 
+        android:name="android.hardware.microphone" 
+        android:required="true" />
+
+    <application android:allowBackup="true" android:supportsRtl="true"></application>
+
+    <!-- Minimum API level -->
+    <uses-sdk android:minSdkVersion="21" android:targetSdkVersion="34" />
+
+</manifest>

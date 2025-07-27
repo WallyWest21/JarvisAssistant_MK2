@@ -121,33 +121,6 @@ namespace JarvisAssistant.MAUI.Converters
     }
 
     /// <summary>
-    /// Converts boolean values to inverse boolean for complementary visibility.
-    /// Useful for showing/hiding elements based on opposite conditions.
-    /// </summary>
-    public class InverseBoolConverter : IValueConverter
-    {
-        public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
-        {
-            if (value is bool boolValue)
-            {
-                return !boolValue;
-            }
-
-            return true;
-        }
-
-        public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
-        {
-            if (value is bool boolValue)
-            {
-                return !boolValue;
-            }
-
-            return false;
-        }
-    }
-
-    /// <summary>
     /// Converts DateTime values to relative time strings (e.g., "2 minutes ago").
     /// Provides user-friendly time representation for notifications.
     /// </summary>

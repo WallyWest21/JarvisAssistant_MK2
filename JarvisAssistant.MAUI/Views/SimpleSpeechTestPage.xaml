@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="JarvisAssistant.MAUI.Views.SimpleSpeechTestPage"
+             Title="Speech Recognition Test">
+    
+    <ScrollView Padding="20">
+        <StackLayout Spacing="20">
+            
+            <!-- Status Section -->
+            <Frame BackgroundColor="LightGray" Padding="15" CornerRadius="10">
+                <StackLayout>
+                    <Label Text="Status" FontSize="18" FontAttributes="Bold"/>
+                    <Label Text="{Binding StatusText}" FontSize="14" TextColor="Black"/>
+                    <Label Text="{Binding IsAvailable, StringFormat='Available: {0}'}" FontSize="12"/>
+                    <Label Text="{Binding IsListening, StringFormat='Listening: {0}'}" FontSize="12"/>
+                </StackLayout>
+            </Frame>
+
+            <!-- Results Section -->
+            <Frame BackgroundColor="LightBlue" Padding="15" CornerRadius="10">
+                <StackLayout>
+                    <Label Text="Recognition Results" FontSize="18" FontAttributes="Bold"/>
+                    <Label Text="{Binding RecognizedText}" 
+                           FontSize="16" 
+                           TextColor="DarkBlue"
+                           LineBreakMode="WordWrap"/>
+                </StackLayout>
+            </Frame>
+
+            <!-- Control Buttons -->
+            <StackLayout Spacing="15">
+                
+                <Button Text="Check Permissions"
+                        Command="{Binding CheckPermissionsCommand}"
+                        BackgroundColor="Orange"
+                        TextColor="White"
+                        HeightRequest="50"/>
+                
+                <Button Text="Test Single Recognition"
+                        Command="{Binding TestSingleRecognitionCommand}"
+                        BackgroundColor="Green"
+                        TextColor="White"
+                        HeightRequest="50"/>
+                
+                <Button Text="{Binding IsListening, Converter={StaticResource BoolToStringConverter}, ConverterParameter='Stop Continuous|Start Continuous'}"
+                        Command="{Binding ToggleContinuousRecognitionCommand}"
+                        BackgroundColor="{Binding IsListening, Converter={StaticResource BoolToColorConverter}, ConverterParameter='Red|Blue'}"
+                        TextColor="White"
+                        HeightRequest="50"/>
+                
+            </StackLayout>
+
+            <!-- Instructions -->
+            <Frame BackgroundColor="LightYellow" Padding="15" CornerRadius="10">
+                <StackLayout>
+                    <Label Text="Instructions" FontSize="16" FontAttributes="Bold"/>
+                    <Label Text="1. Check permissions first" FontSize="12"/>
+                    <Label Text="2. Try single recognition - speak when prompted" FontSize="12"/>
+                    <Label Text="3. Try continuous recognition for ongoing listening" FontSize="12"/>
+                    <Label Text="4. Watch the status for feedback" FontSize="12"/>
+                </StackLayout>
+            </Frame>
+
+        </StackLayout>
+    </ScrollView>
+</ContentPage>

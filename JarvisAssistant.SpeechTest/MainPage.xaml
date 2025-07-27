@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:JarvisAssistant.SpeechTest.ViewModels"
+             x:Class="JarvisAssistant.SpeechTest.MainPage"
+             Title="Speech Recognition Test"
+             x:DataType="vm:SpeechTestViewModel">
+
+    <ScrollView>
+        <VerticalStackLayout Spacing="15" Padding="20">
+            
+            <!-- Status Section -->
+            <Frame BackgroundColor="LightBlue" HasShadow="True">
+                <VerticalStackLayout Spacing="5">
+                    <Label Text="Status" FontSize="18" FontAttributes="Bold" />
+                    <Label Text="{Binding Status}" FontSize="16" />
+                    <Label Text="{Binding CurrentState, StringFormat='State: {0}'}" FontSize="14" TextColor="Gray" />
+                    <HorizontalStackLayout Spacing="10">
+                        <Label Text="{Binding IsAvailable, StringFormat='Available: {0}'}" FontSize="14" />
+                        <Label Text="{Binding PermissionStatus, StringFormat='Permission: {0}'}" FontSize="14" />
+                    </HorizontalStackLayout>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Controls Section -->
+            <Frame BackgroundColor="LightGreen" HasShadow="True">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Controls" FontSize="18" FontAttributes="Bold" />
+                    
+                    <!-- Language Selection -->
+                    <HorizontalStackLayout Spacing="10">
+                        <Label Text="Language:" VerticalOptions="Center" />
+                        <Picker ItemsSource="{Binding AvailableLanguages}" 
+                                SelectedItem="{Binding SelectedLanguage}"
+                                Title="Select Language"
+                                HorizontalOptions="FillAndExpand" />
+                    </HorizontalStackLayout>
+
+                    <!-- Recognition Buttons -->
+                    <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="10">
+                        <Button Grid.Column="0" Grid.Row="0"
+                                Text="Single Recognition" 
+                                Command="{Binding StartSingleRecognitionCommand}"
+                                IsEnabled="{Binding IsAvailable}"
+                                BackgroundColor="DodgerBlue" />
+                        
+                        <Button Grid.Column="1" Grid.Row="0"
+                                Text="Start Continuous" 
+                                Command="{Binding StartContinuousRecognitionCommand}"
+                                IsEnabled="{Binding IsAvailable}"
+                                BackgroundColor="Green" />
+                        
+                        <Button Grid.Column="0" Grid.Row="1"
+                                Text="Stop Recognition" 
+                                Command="{Binding StopRecognitionCommand}"
+                                IsEnabled="{Binding IsListening}"
+                                BackgroundColor="Red" />
+                        
+                        <Button Grid.Column="1" Grid.Row="1"
+                                Text="Request Permissions" 
+                                Command="{Binding RequestPermissionsCommand}"
+                                BackgroundColor="Orange" />
+                    </Grid>
+
+                    <!-- Utility Buttons -->
+                    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10">
+                        <Button Grid.Column="0"
+                                Text="Run Diagnostics" 
+                                Command="{Binding RunDiagnosticsCommand}"
+                                BackgroundColor="Purple" />
+                        
+                        <Button Grid.Column="1"
+                                Text="Clear Logs" 
+                                Command="{Binding ClearLogsCommand}"
+                                BackgroundColor="Gray" />
+                        
+                        <Button Grid.Column="2"
+                                Text="Clear Results" 
+                                Command="{Binding ClearResultsCommand}"
+                                BackgroundColor="DarkGray" />
+                    </Grid>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Results Section -->
+            <Frame BackgroundColor="LightYellow" HasShadow="True">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Recognition Results" FontSize="18" FontAttributes="Bold" />
+                    
+                    <!-- Current/Partial Text -->
+                    <VerticalStackLayout Spacing="5">
+                        <Label Text="Partial Text:" FontAttributes="Bold" />
+                        <Frame BackgroundColor="White" Padding="10" HasShadow="False">
+                            <Label Text="{Binding PartialText}" 
+                                   FontSize="16" 
+                                   TextColor="DarkBlue"
+                                   LineBreakMode="WordWrap" />
+                        </Frame>
+                    </VerticalStackLayout>
+
+                    <!-- Final Result -->
+                    <VerticalStackLayout Spacing="5">
+                        <Label Text="Last Recognized:" FontAttributes="Bold" />
+                        <Frame BackgroundColor="White" Padding="10" HasShadow="False">
+                            <Label Text="{Binding LastRecognizedText}" 
+                                   FontSize="16" 
+                                   FontAttributes="Bold"
+                                   LineBreakMode="WordWrap" />
+                        </Frame>
+                        <Label Text="{Binding LastConfidence, StringFormat='Confidence: {0:P}'}" 
+                               FontSize="14" 
+                               TextColor="Gray" />
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Diagnostics Section -->
+            <Frame BackgroundColor="LightCoral" HasShadow="True">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Diagnostic Results" FontSize="18" FontAttributes="Bold" />
+                    <CollectionView ItemsSource="{Binding DiagnosticResults}"
+                                    MaximumHeightRequest="300">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="vm:DiagnosticResultItem">
+                                <Grid Padding="5" ColumnDefinitions="80,*">
+                                    <Label Grid.Column="0" 
+                                           Text="{Binding Type}" 
+                                           FontSize="12" 
+                                           FontAttributes="Bold"
+                                           VerticalOptions="Start" />
+                                    <Label Grid.Column="1" 
+                                           Text="{Binding Message}" 
+                                           FontSize="12" 
+                                           LineBreakMode="WordWrap"
+                                           VerticalOptions="Start" />
+                                </Grid>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Logs Section -->
+            <Frame BackgroundColor="LightGray" HasShadow="True">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Activity Log" FontSize="18" FontAttributes="Bold" />
+                    <CollectionView ItemsSource="{Binding LogMessages}"
+                                    MaximumHeightRequest="300">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <Label Text="{Binding .}" 
+                                       FontSize="11" 
+                                       FontFamily="Courier New"
+                                       Padding="5"
+                                       LineBreakMode="WordWrap" />
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </VerticalStackLayout>
+            </Frame>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

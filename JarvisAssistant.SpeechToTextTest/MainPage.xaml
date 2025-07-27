@@ -1,0 +1,313 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="JarvisAssistant.SpeechToTextTest.MainPage"
+             BackgroundColor="#1a1a2e">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="20">
+
+            <!-- Platform Information Frame -->
+            <Frame BackgroundColor="#16213e" CornerRadius="10" Padding="15">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Speech-to-Text Troubleshooter" 
+                           FontSize="20" 
+                           TextColor="White" 
+                           HorizontalOptions="Center" />
+                    <Label x:Name="PlatformLabel" 
+                           Text="Current Platform: Windows" 
+                           FontSize="16" 
+                           TextColor="#00adb5" 
+                           HorizontalOptions="Center" />
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Volume Meter Section -->
+            <Frame BackgroundColor="#16213e" CornerRadius="10" Padding="15">
+                <VerticalStackLayout Spacing="15">
+                    <Label Text="Input Volume Level" 
+                           FontSize="16" 
+                           TextColor="White" />
+                    
+                    <!-- Volume Progress Bar with Threshold Indicators -->
+                    <Grid>
+                        <ProgressBar x:Name="VolumeProgressBar" 
+                                   Progress="0.6" 
+                                   ProgressColor="#00adb5" 
+                                   BackgroundColor="#0f3460" 
+                                   HeightRequest="60" />
+                        
+                        <!-- Threshold Indicators -->
+                        <BoxView BackgroundColor="#ff6b6b" 
+                               WidthRequest="2" 
+                               HeightRequest="60" 
+                               HorizontalOptions="Start" 
+                               Margin="20,0,0,0" />
+                        <BoxView BackgroundColor="#ff6b6b" 
+                               WidthRequest="2" 
+                               HeightRequest="60" 
+                               HorizontalOptions="End" 
+                               Margin="0,0,20,0" />
+                    </Grid>
+                    
+                    <!-- Volume Labels -->
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Label Text="Silent" 
+                             FontSize="14" 
+                             TextColor="White" 
+                             Grid.Column="0" 
+                             HorizontalOptions="Start" />
+                        <Label Text="Optimal" 
+                             FontSize="14" 
+                             TextColor="White" 
+                             Grid.Column="1" 
+                             HorizontalOptions="Center" />
+                        <Label Text="Too Loud" 
+                             FontSize="14" 
+                             TextColor="White" 
+                             Grid.Column="2" 
+                             HorizontalOptions="End" />
+                    </Grid>
+                    
+                    <Label x:Name="VolumeStatusLabel" 
+                           Text="Good volume level" 
+                           FontSize="14" 
+                           TextColor="#00cf9f" 
+                           HorizontalOptions="Center" />
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Buffer Size Slider -->
+            <Frame BackgroundColor="#16213e" CornerRadius="10" Padding="15">
+                <VerticalStackLayout Spacing="10">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Label Text="Buffer Size (ms)" 
+                             FontSize="16" 
+                             TextColor="White" 
+                             Grid.Column="0" />
+                        <Label x:Name="BufferSizeValue" 
+                             Text="200ms" 
+                             FontSize="16" 
+                             TextColor="#00adb5" 
+                             Grid.Column="1" />
+                    </Grid>
+                    <Slider x:Name="BufferSizeSlider" 
+                          Minimum="50" 
+                          Maximum="500" 
+                          Value="200" 
+                          MinimumTrackColor="#00adb5" 
+                          MaximumTrackColor="#0f3460" 
+                          ThumbColor="#00adb5" 
+                          ValueChanged="OnBufferSizeChanged" />
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Voice Detection Sensitivity Slider -->
+            <Frame BackgroundColor="#16213e" CornerRadius="10" Padding="15">
+                <VerticalStackLayout Spacing="10">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Label Text="Voice Detection Sensitivity" 
+                             FontSize="16" 
+                             TextColor="White" 
+                             Grid.Column="0" />
+                        <Label x:Name="SensitivityValue" 
+                             Text="5" 
+                             FontSize="16" 
+                             TextColor="#00adb5" 
+                             Grid.Column="1" />
+                    </Grid>
+                    <Slider x:Name="SensitivitySlider" 
+                          Minimum="1" 
+                          Maximum="10" 
+                          Value="5" 
+                          MinimumTrackColor="#00adb5" 
+                          MaximumTrackColor="#0f3460" 
+                          ThumbColor="#00adb5" 
+                          ValueChanged="OnSensitivityChanged" />
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Control Buttons -->
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Button x:Name="RecordButton" 
+                      Text="Start Recording" 
+                      BackgroundColor="#00adb5" 
+                      TextColor="White" 
+                      CornerRadius="10" 
+                      HeightRequest="50" 
+                      FontSize="16" 
+                      Grid.Column="0" 
+                      Margin="0,0,10,0" 
+                      Clicked="OnRecordButtonClicked" />
+                <Button x:Name="ClearButton" 
+                      Text="Clear Results" 
+                      BackgroundColor="#0f3460" 
+                      TextColor="White" 
+                      BorderColor="#00adb5" 
+                      BorderWidth="2" 
+                      CornerRadius="10" 
+                      HeightRequest="50" 
+                      FontSize="16" 
+                      Grid.Column="1" 
+                      Margin="10,0,0,0" 
+                      Clicked="OnClearButtonClicked" />
+            </Grid>
+
+            <!-- Recognition Results -->
+            <Frame BackgroundColor="#16213e" CornerRadius="10" Padding="15">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Recognition Results" 
+                           FontSize="16" 
+                           TextColor="White" />
+                    <CollectionView x:Name="ResultsCollectionView" 
+                                  ItemsSource="{Binding RecognitionResults}">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid BackgroundColor="#0f3460" 
+                                    Margin="0,5">
+                                    <Frame BackgroundColor="#0f3460" 
+                                         CornerRadius="5" 
+                                         Padding="10" 
+                                         Margin="0">
+                                        <VerticalStackLayout Spacing="5">
+                                            <Label Text="{Binding Text}" 
+                                                 FontSize="14" 
+                                                 TextColor="White" />
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <Label Text="{Binding Duration}" 
+                                                     FontSize="12" 
+                                                     TextColor="#888" 
+                                                     Grid.Column="0" />
+                                                <Label Text="{Binding Confidence}" 
+                                                     FontSize="12" 
+                                                     TextColor="#00adb5" 
+                                                     Grid.Column="1" />
+                                            </Grid>
+                                        </VerticalStackLayout>
+                                    </Frame>
+                                </Grid>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Advanced Settings Toggle -->
+            <Button x:Name="AdvancedSettingsButton" 
+                  Text="Advanced Settings" 
+                  BackgroundColor="#0f3460" 
+                  TextColor="#00adb5" 
+                  BorderColor="#00adb5" 
+                  BorderWidth="1" 
+                  CornerRadius="10" 
+                  HeightRequest="40" 
+                  FontSize="16" 
+                  Clicked="OnAdvancedSettingsClicked" />
+
+            <!-- Advanced Settings Panel (Collapsible) -->
+            <Frame x:Name="AdvancedSettingsPanel" 
+                 BackgroundColor="#16213e" 
+                 CornerRadius="10" 
+                 Padding="15" 
+                 IsVisible="False">
+                <VerticalStackLayout Spacing="15">
+                    <Label Text="Advanced Options" 
+                           FontSize="20" 
+                           TextColor="White" />
+                    
+                    <!-- Enable Noise Suppression -->
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Label Text="Enable noise suppression" 
+                             FontSize="16" 
+                             TextColor="White" 
+                             VerticalOptions="Center" 
+                             Grid.Column="0" />
+                        <CheckBox x:Name="NoiseSuppressionCheckBox" 
+                                IsChecked="True" 
+                                Color="#00adb5" 
+                                Grid.Column="1" />
+                    </Grid>
+                    
+                    <!-- Continuous Recognition -->
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Label Text="Continuous recognition" 
+                             FontSize="16" 
+                             TextColor="White" 
+                             VerticalOptions="Center" 
+                             Grid.Column="0" />
+                        <CheckBox x:Name="ContinuousRecognitionCheckBox" 
+                                IsChecked="True" 
+                                Color="#00adb5" 
+                                Grid.Column="1" />
+                    </Grid>
+                    
+                    <!-- Show Partial Results -->
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Label Text="Show partial results" 
+                             FontSize="16" 
+                             TextColor="White" 
+                             VerticalOptions="Center" 
+                             Grid.Column="0" />
+                        <CheckBox x:Name="PartialResultsCheckBox" 
+                                IsChecked="False" 
+                                Color="#00adb5" 
+                                Grid.Column="1" />
+                    </Grid>
+                    
+                    <!-- Recognition Language -->
+                    <VerticalStackLayout Spacing="5">
+                        <Label Text="Recognition Language" 
+                             FontSize="16" 
+                             TextColor="White" />
+                        <Picker x:Name="LanguagePicker" 
+                              BackgroundColor="#0f3460" 
+                              TextColor="White">
+                            <Picker.Items>
+                                <x:String>en-US (English - United States)</x:String>
+                                <x:String>en-GB (English - United Kingdom)</x:String>
+                                <x:String>es-ES (Spanish - Spain)</x:String>
+                                <x:String>fr-FR (French - France)</x:String>
+                                <x:String>de-DE (German - Germany)</x:String>
+                            </Picker.Items>
+                        </Picker>
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+            </Frame>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

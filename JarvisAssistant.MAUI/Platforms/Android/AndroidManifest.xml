@@ -11,6 +11,18 @@
 		android:usesCleartextTraffic="true"
 		android:networkSecurityConfig="@xml/network_security_config">
 	</application>
+	
+	<!-- Network permissions -->
 	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 	<uses-permission android:name="android.permission.INTERNET" />
+	
+	<!-- Voice/microphone permissions -->
+	<uses-permission android:name="android.permission.RECORD_AUDIO" />
+	
+	<!-- Query for speech recognition services -->
+	<queries>
+		<intent>
+			<action android:name="android.speech.RecognitionService" />
+		</intent>
+	</queries>
 </manifest>

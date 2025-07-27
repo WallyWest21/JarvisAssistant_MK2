@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="JarvisAssistant.MAUI.Views.VoicePage"
+             Title="Voice Assistant">
+    
+    <ScrollView Padding="20">
+        <Grid RowSpacing="20">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Status Indicator -->
+            <Frame Grid.Row="0" 
+                   BackgroundColor="{AppThemeBinding Light=#F5F5F5, Dark=#2A2A2A}"
+                   Padding="15"
+                   CornerRadius="10">
+                <StackLayout Spacing="10">
+                    <Label Text="Speech Recognition Status" 
+                           FontAttributes="Bold"
+                           FontSize="16"/>
+                    <Label Text="{Binding StatusMessage}" 
+                           FontSize="14"/>
+                    <Label Text="{Binding RecognitionState}" 
+                           FontSize="12"
+                           TextColor="Gray"/>
+                    <ActivityIndicator IsRunning="{Binding IsBusy}"
+                                       IsVisible="{Binding IsBusy}"
+                                       Color="{AppThemeBinding Light=#007AFF, Dark=#0A84FF}"/>
+                </StackLayout>
+            </Frame>
+
+            <!-- Availability Check -->
+            <Frame Grid.Row="1"
+                   BackgroundColor="{AppThemeBinding Light=#F0F8FF, Dark=#1A2332}"
+                   Padding="15"
+                   CornerRadius="10">
+                <StackLayout Spacing="10">
+                    <Label Text="Availability" 
+                           FontAttributes="Bold"
+                           FontSize="16"/>
+                    <Label Text="{Binding IsSpeechRecognitionAvailable, StringFormat='Speech Recognition Available: {0}'}"
+                           FontSize="14"/>
+                    <Button Text="Test Speech Recognition"
+                            Command="{Binding TestSpeechRecognitionCommand}"
+                            BackgroundColor="{AppThemeBinding Light=#6C757D, Dark=#495057}"
+                            TextColor="White"
+                            CornerRadius="20"
+                            HeightRequest="40"/>
+                </StackLayout>
+            </Frame>
+
+            <!-- Settings -->
+            <Frame Grid.Row="2"
+                   BackgroundColor="{AppThemeBinding Light=#F5F5F5, Dark=#2A2A2A}"
+                   Padding="15"
+                   CornerRadius="10">
+                <StackLayout Spacing="15">
+                    <Label Text="Settings" 
+                           FontAttributes="Bold"
+                           FontSize="16"/>
+                    
+                    <StackLayout Spacing="10">
+                        <HorizontalStackLayout Spacing="10">
+                            <Label Text="Continuous Mode:" 
+                                   VerticalOptions="Center"
+                                   WidthRequest="120"/>
+                            <Switch IsToggled="{Binding IsContinuousMode}"
+                                    IsEnabled="{Binding IsVoiceModeActive, Converter={StaticResource InverseBoolConverter}}"/>
+                        </HorizontalStackLayout>
+
+                        <HorizontalStackLayout Spacing="10">
+                            <Label Text="Language:" 
+                                   VerticalOptions="Center"
+                                   WidthRequest="120"/>
+                            <Picker ItemsSource="{Binding AvailableLanguages}"
+                                    SelectedItem="{Binding SelectedLanguage}"
+                                    IsEnabled="{Binding IsVoiceModeActive, Converter={StaticResource InverseBoolConverter}}"
+                                    WidthRequest="150"/>
+                        </HorizontalStackLayout>
+                    </StackLayout>
+                </StackLayout>
+            </Frame>
+
+            <!-- Transcription Display -->
+            <Frame Grid.Row="3"
+                   BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1A1A1A}"
+                   Padding="15"
+                   CornerRadius="10"
+                   MinimumHeightRequest="200">
+                <ScrollView>
+                    <StackLayout Spacing="15">
+                        <!-- Partial Results -->
+                        <StackLayout IsVisible="{Binding PartialText, Converter={StaticResource IsNotNullOrEmptyConverter}}">
+                            <Label Text="Listening..." 
+                                   FontAttributes="Italic"
+                                   TextColor="Gray"
+                                   FontSize="12"/>
+                            <Label Text="{Binding PartialText}"
+                                   FontSize="16"
+                                   TextColor="Gray"
+                                   LineBreakMode="WordWrap"/>
+                        </StackLayout>
+
+                        <!-- Final Results -->
+                        <StackLayout IsVisible="{Binding RecognizedText, Converter={StaticResource IsNotNullOrEmptyConverter}}">
+                            <Label Text="Recognized:" 
+                                   FontAttributes="Bold"
+                                   FontSize="14"/>
+                            <Label Text="{Binding RecognizedText}"
+                                   FontSize="16"
+                                   LineBreakMode="WordWrap"/>
+                        </StackLayout>
+
+                        <!-- Placeholder when empty -->
+                        <StackLayout IsVisible="{Binding RecognizedText, Converter={StaticResource IsNullOrEmptyConverter}}">
+                            <Label Text="No speech recognized yet. Start voice mode or use single recognition."
+                                   FontAttributes="Italic"
+                                   TextColor="Gray"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center"/>
+                        </StackLayout>
+                    </StackLayout>
+                </ScrollView>
+            </Frame>
+
+            <!-- Voice Control Buttons -->
+            <StackLayout Grid.Row="4" Spacing="15">
+                <!-- Continuous Voice Mode Button -->
+                <Button Text="{Binding IsVoiceModeActive, Converter={StaticResource BoolToStringConverter}, ConverterParameter='Stop Listening|Start Voice Mode'}"
+                        Command="{Binding ToggleVoiceModeCommand}"
+                        BackgroundColor="{Binding IsVoiceModeActive, Converter={StaticResource BoolToColorConverter}, ConverterParameter='#DC3545|#28A745'}"
+                        TextColor="White"
+                        CornerRadius="25"
+                        HeightRequest="50"
+                        FontSize="16"
+                        FontAttributes="Bold"
+                        IsEnabled="{Binding IsSpeechRecognitionAvailable}"/>
+
+                <!-- Single Recognition Button -->
+                <Button Text="Single Recognition"
+                        Command="{Binding RecognizeSingleUtteranceCommand}"
+                        IsEnabled="{Binding IsVoiceModeActive, Converter={StaticResource InverseBoolConverter}}"
+                        BackgroundColor="{AppThemeBinding Light=#007AFF, Dark=#0A84FF}"
+                        TextColor="White"
+                        CornerRadius="25"
+                        HeightRequest="45"/>
+            </StackLayout>
+
+            <!-- Help Text -->
+            <Frame Grid.Row="5"
+                   BackgroundColor="{AppThemeBinding Light=#FFF3CD, Dark=#332701}"
+                   Padding="15"
+                   CornerRadius="10">
+                <StackLayout>
+                    <Label Text="How to Use:" 
+                           FontAttributes="Bold"
+                           FontSize="14"/>
+                    <Label Text="• Start Voice Mode for continuous listening&#x0a;• Use Single Recognition for one-time speech capture&#x0a;• Make sure microphone permissions are granted&#x0a;• Speak clearly and wait for processing"
+                           FontSize="12"
+                           LineBreakMode="WordWrap"/>
+                </StackLayout>
+            </Frame>
+        </Grid>
+    </ScrollView>
+</ContentPage>

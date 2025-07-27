@@ -17,6 +17,13 @@
             <converters:IntToBoolConverter x:Key="IntToBoolConverter" />
             <converters:ObjectToBoolConverter x:Key="ObjectToBoolConverter" />
             <converters:PercentageToProgressConverter x:Key="PercentageToProgressConverter" />
+            
+            <!-- Speech Recognition Converters -->
+            <converters:InverseBoolConverter x:Key="InverseBoolConverter" />
+            <converters:BoolToStringConverter x:Key="BoolToStringConverter" />
+            <converters:BoolToColorConverter x:Key="BoolToColorConverter" />
+            <converters:IsNullOrEmptyConverter x:Key="IsNullOrEmptyConverter" />
+            <converters:IsNotNullOrEmptyConverter x:Key="IsNotNullOrEmptyConverter" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

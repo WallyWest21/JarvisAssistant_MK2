@@ -1,0 +1,90 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "build",
+			"type": "shell",
+			"command": "dotnet",
+			"args": [
+				"build"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": [
+				"$msCompile"
+			],
+			"presentation": {
+				"echo": true,
+				"reveal": "silent",
+				"focus": false,
+				"panel": "shared"
+			}
+		},
+		{
+			"label": "run-windows",
+			"type": "shell",
+			"command": "dotnet",
+			"args": [
+				"run",
+				"--framework",
+				"net8.0-windows10.0.19041.0"
+			],
+			"group": "build",
+			"problemMatcher": [
+				"$msCompile"
+			],
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": true,
+				"panel": "new"
+			}
+		},
+		{
+			"label": "run-android",
+			"type": "shell",
+			"command": "dotnet",
+			"args": [
+				"run",
+				"--framework",
+				"net8.0-android"
+			],
+			"group": "build",
+			"problemMatcher": [
+				"$msCompile"
+			],
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": true,
+				"panel": "new"
+			}
+		},
+		{
+			"label": "clean",
+			"type": "shell",
+			"command": "dotnet",
+			"args": [
+				"clean"
+			],
+			"group": "build",
+			"problemMatcher": [
+				"$msCompile"
+			]
+		},
+		{
+			"label": "restore",
+			"type": "shell",
+			"command": "dotnet",
+			"args": [
+				"restore"
+			],
+			"group": "build",
+			"problemMatcher": [
+				"$msCompile"
+			]
+		}
+	]
+}

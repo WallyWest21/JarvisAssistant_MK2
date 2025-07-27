@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using JarvisAssistant.Core.Interfaces;
+using JarvisAssistant.Core.Services;
 using JarvisAssistant.MAUI.Services;
 using JarvisAssistant.MAUI.Views;
 using JarvisAssistant.MAUI.ViewModels;
@@ -11,6 +12,7 @@ using SkiaSharp.Views.Maui.Controls.Hosting;
 using System;
 using System.IO;
 using MediaManager;
+using CorePermissionStatus = JarvisAssistant.Core.Services.PermissionStatus;
 
 namespace JarvisAssistant.MAUI;
 
@@ -102,6 +104,13 @@ public static class MauiProgram
 			{
 				services.AddSingleton<IVoiceModeManager, VoiceModeManager>();
 				services.AddSingleton<IVoiceCommandProcessor, VoiceCommandProcessor>();
+				
+				// Register a basic speech recognition service implementation
+				services.AddSingleton<ISpeechRecognitionService>(serviceProvider =>
+				{
+					var logger = serviceProvider.GetService<ILogger<ISpeechRecognitionService>>();
+					return new StubSpeechRecognitionService(logger);
+				});
 				
 				// Configure voice service with ElevenLabs support
 				ConfigureVoiceService(services);
@@ -201,6 +210,14 @@ public static class MauiProgram
 			services.AddTransient<VoiceDemoPage>();
 			services.AddTransient<ElevenLabsVoiceDemoPage>();
 			services.AddTransient<ElevenLabsVoiceDemoViewModel>();
+			
+			// Register Speech Recognition Pages and ViewModels
+			services.AddTransient<VoicePage>();
+			services.AddTransient<VoiceViewModel>();
+			
+			// Register Simple Speech Test Page
+			services.AddTransient<SimpleSpeechTestPage>();
+			services.AddTransient<SimpleSpeechTestViewModel>();
 
 			// Register status monitoring services with synchronized endpoints
 			services.AddStatusMonitoring(options =>
@@ -338,6 +355,63 @@ public static class MauiProgram
 		// Use the working endpoint for other platforms
 		return "http://100.108.155.28:11434";
 #endif
+	}
+}
+
+// Stub implementation for speech recognition service
+public class StubSpeechRecognitionService : ISpeechRecognitionService
+{
+	private readonly ILogger? _logger;
+	private bool _isListening;
+
+	public StubSpeechRecognitionService(ILogger? logger)
+	{
+		_logger = logger;
+	}
+
+	public bool IsListening => _isListening;
+	public bool IsAvailable => true;
+
+	public event EventHandler<SpeechRecognitionResult>? SpeechRecognized;
+	public event EventHandler<string>? PartialResultsReceived;
+	public event EventHandler<SpeechRecognitionState>? StateChanged;
+
+	public Task<IEnumerable<string>> GetAvailableLanguagesAsync()
+	{
+		return Task.FromResult<IEnumerable<string>>(new[] { "en-US" });
+	}
+
+	public Task<CorePermissionStatus> RequestPermissionsAsync()
+	{
+		return Task.FromResult(CorePermissionStatus.Granted);
+	}
+
+	public Task<SpeechRecognitionResult> RecognizeSpeechAsync(SpeechRecognitionOptions? options = null, CancellationToken cancellationToken = default)
+	{
+		_logger?.LogInformation("Stub speech recognition - single recognition");
+		return Task.FromResult(new SpeechRecognitionResult
+		{
+			Text = "Stub recognition result",
+			Confidence = 0.95f,
+			IsFinal = true,
+			Timestamp = DateTime.UtcNow
+		});
+	}
+
+	public Task<bool> StartListeningAsync(SpeechRecognitionOptions? options = null)
+	{
+		_logger?.LogInformation("Stub speech recognition - start continuous listening");
+		_isListening = true;
+		StateChanged?.Invoke(this, SpeechRecognitionState.Listening);
+		return Task.FromResult(true);
+	}
+
+	public Task StopListeningAsync()
+	{
+		_logger?.LogInformation("Stub speech recognition - stop listening");
+		_isListening = false;
+		StateChanged?.Invoke(this, SpeechRecognitionState.Idle);
+		return Task.CompletedTask;
 	}
 }
 

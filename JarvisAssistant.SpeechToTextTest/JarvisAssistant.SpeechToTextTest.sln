@@ -1,0 +1,24 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JarvisAssistant.SpeechToTextTest", "JarvisAssistant.SpeechToTextTest.csproj", "{1980FB75-3A0F-530A-CD62-F45CF501D017}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1980FB75-3A0F-530A-CD62-F45CF501D017}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1980FB75-3A0F-530A-CD62-F45CF501D017}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1980FB75-3A0F-530A-CD62-F45CF501D017}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1980FB75-3A0F-530A-CD62-F45CF501D017}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {4FF9E369-95B6-418F-A091-A404CB4DEF6A}
+	EndGlobalSection
+EndGlobal
